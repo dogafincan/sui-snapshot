@@ -1,8 +1,13 @@
-import { startTransition, useState, type FormEvent } from "react"
+import {
+  startTransition,
+  type FormEvent,
+  type ReactNode,
+  useState,
+} from "react"
 import { Download, LoaderCircle, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
-import { HoldersTable } from "@/components/holders-table"
+import { HoldersTable, HoldersTablePreview } from "@/components/holders-table"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -64,7 +69,7 @@ function SummaryCard({
   description,
 }: {
   label: string
-  value: string
+  value: ReactNode
   description: string
 }) {
   return (
@@ -82,17 +87,127 @@ function SummaryCard({
   )
 }
 
-function ResultsSkeleton() {
+function SummaryCardsPreview({
+  mode,
+}: {
+  mode: "preview" | "loading"
+}) {
+  const isLoading = mode === "loading"
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
-      </div>
-      <Skeleton className="h-[28rem]" />
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <SummaryCard
+        label="Holders"
+        value={<Skeleton className="h-8 w-24" />}
+        description={
+          isLoading
+            ? "Aggregating unique owner addresses from live Coin<T> objects."
+            : "Unique owner count appears here after the snapshot runs."
+        }
+      />
+      <SummaryCard
+        label="Total balance"
+        value={<Skeleton className="h-8 w-28" />}
+        description="Formatted token balance using the coin's on-chain decimals."
+      />
+      <SummaryCard
+        label="Eligible holders"
+        value={<Skeleton className="h-8 w-20" />}
+        description="Exclusion rules are applied before airdrop shares are computed."
+      />
+      <SummaryCard
+        label="Output mode"
+        value={isLoading ? "Loading" : "Preview"}
+        description="The same summary, table, and export area stay in place across every state."
+      />
     </div>
+  )
+}
+
+function WorkspaceMeta({
+  children,
+}: {
+  children: ReactNode
+}) {
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
+      {children}
+    </div>
+  )
+}
+
+function WorkspaceMetaItem({
+  label,
+  value,
+}: {
+  label: string
+  value: ReactNode
+}) {
+  return (
+    <div className="rounded-[calc(var(--radius)*2)] border bg-background px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <div className="mt-2 text-sm font-medium text-foreground">{value}</div>
+    </div>
+  )
+}
+
+function ResultsPreviewCard({
+  mode,
+}: {
+  mode: "preview" | "loading"
+}) {
+  const isLoading = mode === "loading"
+
+  return (
+    <Card className="min-h-[30rem]">
+      <CardHeader>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">
+                {isLoading ? "Loading workspace" : "Preview workspace"}
+              </Badge>
+              <Badge variant="outline">
+                {isLoading ? "Fetching live data" : "Ready for the next run"}
+              </Badge>
+            </div>
+            <div className="flex flex-col gap-1">
+              <CardTitle>Snapshot results</CardTitle>
+              <CardDescription>
+                {isLoading
+                  ? "Preparing the ranked table, client-side filters, and export action."
+                  : "This workspace becomes the live ranked output as soon as the snapshot completes."}
+              </CardDescription>
+            </div>
+          </div>
+
+          <Button type="button" variant="outline" disabled>
+            <Download data-icon="inline-start" />
+            Download CSV
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6">
+        <WorkspaceMeta>
+          <WorkspaceMetaItem
+            label="Coin type"
+            value={<Skeleton className="h-4 w-full max-w-40" />}
+          />
+          <WorkspaceMetaItem
+            label="Endpoint"
+            value={<Skeleton className="h-4 w-full max-w-32" />}
+          />
+          <WorkspaceMetaItem
+            label="Export"
+            value={isLoading ? "Preparing CSV payload" : "CSV generated from the current rows"}
+          />
+        </WorkspaceMeta>
+
+        <HoldersTablePreview mode={mode} />
+      </CardContent>
+    </Card>
   )
 }
 
@@ -155,30 +270,49 @@ export function SnapshotWorkbench({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-3">
-        <Badge variant="outline" className="w-fit">
-          Cloudflare Worker
-        </Badge>
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Sui holders snapshot
-          </h1>
-          <p className="max-w-3xl text-muted-foreground">
-            Run a live holder snapshot, model a proportional airdrop, then export
-            the same ranked rows to CSV.
-          </p>
-        </div>
-      </header>
+    <main className="flex flex-col gap-6">
+      <section className="flex flex-col gap-3 rounded-[calc(var(--radius)*3)] border bg-background px-5 py-5 sm:px-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">Snapshot workspace</Badge>
+              <Badge variant="outline">Stateless execution</Badge>
+            </div>
+            <div className="flex flex-col gap-1">
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                Run a live holder snapshot
+              </h1>
+              <p className="max-w-3xl text-sm text-muted-foreground sm:text-base">
+                Configure the token, optional airdrop, and exclusions, then work
+                from a stable results surface built for filtering, review, and CSV export.
+              </p>
+            </div>
+          </div>
 
-      <section className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
-        <Card className="h-fit lg:sticky lg:top-6">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">Client-side table</Badge>
+            <Badge variant="outline">Optional airdrop split</Badge>
+            <Badge variant="outline">CSV export</Badge>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[22rem_minmax(0,1fr)]">
+        <Card className="h-fit xl:sticky xl:top-4">
           <CardHeader>
-            <CardTitle>Snapshot parameters</CardTitle>
-            <CardDescription>
-              Exclusions accept commas, spaces, or line breaks. Addresses are
-              normalized before the request is sent.
-            </CardDescription>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary">Operations rail</Badge>
+                <Badge variant="outline">Direct request flow</Badge>
+              </div>
+              <div className="flex flex-col gap-1">
+                <CardTitle>Run snapshot</CardTitle>
+                <CardDescription>
+                  Provide a Sui coin type, optional airdrop amount, and any addresses
+                  that should be excluded from the allocation.
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
@@ -223,7 +357,7 @@ export function SnapshotWorkbench({
                     value={excludedAddressText}
                     onChange={(event) => setExcludedAddressText(event.target.value)}
                     placeholder={"0x0000...\n0x1234..."}
-                    className="min-h-32"
+                    className="min-h-36"
                   />
                 </Field>
               </FieldGroup>
@@ -244,7 +378,13 @@ export function SnapshotWorkbench({
                 </Alert>
               ) : null}
 
-              <Button type="submit" size="lg" disabled={isSubmitting}>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">No storage</Badge>
+                <Badge variant="outline">JSON-safe payload</Badge>
+                <Badge variant="outline">Mainnet by default</Badge>
+              </div>
+
+              <Button type="submit" size="lg" disabled={isSubmitting} className="w-full">
                 {isSubmitting ? (
                   <>
                     <LoaderCircle className="animate-spin" data-icon="inline-start" />
@@ -281,11 +421,11 @@ export function SnapshotWorkbench({
                   description={`${formatInteger(snapshot.meta.exclusionCount)} excluded address${snapshot.meta.exclusionCount === 1 ? "" : "es"}`}
                 />
                 <SummaryCard
-                  label="Airdrop mode"
+                  label="Output mode"
                   value={
                     snapshot.meta.airdropEnabled
-                      ? snapshot.meta.totalAirdropAmount ?? "Enabled"
-                      : "Off"
+                      ? snapshot.meta.totalAirdropAmount ?? "Airdrop"
+                      : "Snapshot"
                   }
                   description={
                     snapshot.meta.airdropEnabled
@@ -295,7 +435,7 @@ export function SnapshotWorkbench({
                 />
               </div>
 
-              <Card>
+              <Card className="min-h-[30rem]">
                 <CardHeader>
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="flex flex-col gap-3">
@@ -328,17 +468,21 @@ export function SnapshotWorkbench({
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                    <p>
-                      <span className="font-medium text-foreground">Coin type:</span>{" "}
-                      <code className="font-mono">{snapshot.meta.coinAddress}</code>
-                    </p>
-                    <p>
-                      <span className="font-medium text-foreground">Endpoint:</span>{" "}
-                      <code className="font-mono">{snapshot.meta.endpoint}</code>
-                    </p>
-                  </div>
+                <CardContent className="flex flex-col gap-6">
+                  <WorkspaceMeta>
+                    <WorkspaceMetaItem
+                      label="Coin type"
+                      value={<code className="font-mono">{snapshot.meta.coinAddress}</code>}
+                    />
+                    <WorkspaceMetaItem
+                      label="Endpoint"
+                      value={<code className="font-mono">{snapshot.meta.endpoint}</code>}
+                    />
+                    <WorkspaceMetaItem
+                      label="Dataset"
+                      value={`${formatInteger(snapshot.rows.length)} ranked row${snapshot.rows.length === 1 ? "" : "s"}`}
+                    />
+                  </WorkspaceMeta>
 
                   <HoldersTable
                     rows={snapshot.rows}
@@ -348,46 +492,15 @@ export function SnapshotWorkbench({
               </Card>
             </>
           ) : isSubmitting ? (
-            <ResultsSkeleton />
+            <>
+              <SummaryCardsPreview mode="loading" />
+              <ResultsPreviewCard mode="loading" />
+            </>
           ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Ready to run</CardTitle>
-                <CardDescription>
-                  Start with <code>0x2::sui::SUI</code> to validate the pipeline, or
-                  paste your own coin type to inspect another asset.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-3">
-                <Card size="sm">
-                  <CardHeader>
-                    <CardTitle>Normalize inputs</CardTitle>
-                    <CardDescription>
-                      Coin types and excluded addresses are canonicalized before the
-                      Worker calls Sui GraphQL.
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-                <Card size="sm">
-                  <CardHeader>
-                    <CardTitle>Aggregate holders</CardTitle>
-                    <CardDescription>
-                      The Worker pages every live <code>Coin&lt;T&gt;</code> object and
-                      sums balances by owner address.
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-                <Card size="sm">
-                  <CardHeader>
-                    <CardTitle>Explore the result</CardTitle>
-                    <CardDescription>
-                      Review the ranked table in the browser, then export the same
-                      rows to CSV.
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              </CardContent>
-            </Card>
+            <>
+              <SummaryCardsPreview mode="preview" />
+              <ResultsPreviewCard mode="preview" />
+            </>
           )}
         </div>
       </section>
