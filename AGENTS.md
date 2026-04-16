@@ -16,6 +16,7 @@ Core behavior:
 
 ## Stack
 
+- Vite+
 - TanStack Start
 - TanStack Router
 - TanStack Table
@@ -26,7 +27,6 @@ Core behavior:
 - Inter variable font
 - Hugeicons for preset-managed icons
 - Cloudflare Workers via `@cloudflare/vite-plugin`
-- Vitest
 
 ## Important Files
 
@@ -49,18 +49,24 @@ Do not hand-edit these unless there is a specific reason and you know the genera
 
 Regenerate them with the normal toolchain when needed:
 
-- `npm run dev`
-- `npm run build`
-- `npm run cf-typegen`
+- `vp dev`
+- `vp build`
+- `vp run cf-typegen`
 
 ## Local Commands
 
-- `npm install`
-- `npm run dev`
-- `npm run test`
-- `npm run build`
-- `npm run preview -- --host 127.0.0.1`
-- `npm run deploy`
+- `vp env setup`
+- `vp install`
+- `vp dev`
+- `vp check`
+- `vp test`
+- `vp build`
+- `vp preview --host 127.0.0.1`
+- `vp run deploy`
+- `vp run cf-typegen`
+
+Compatibility wrappers remain in `package.json`, but Vite+ commands are the
+primary workflow.
 
 Default local URL:
 
@@ -96,6 +102,8 @@ aligned with `wrangler.jsonc`.
 - Prefer putting reusable pure logic in `src/lib/sui-snapshot.ts` so it stays
   easy to unit test.
 - Prefer keeping Cloudflare-specific runtime code in server-only modules.
+- Keep Vite+ as the primary toolchain. Prefer configuring format, lint, test,
+  and task behavior in `vite.config.ts` instead of separate tool config files.
 - Use existing shadcn components before introducing custom primitives.
 - Preserve the current visual contract: stock shadcn `base-luma` styling with the
   applied preset, Inter, and Base UI primitives. Prefer minimal layout classes and
@@ -105,16 +113,20 @@ aligned with `wrangler.jsonc`.
 
 When changing behavior, run:
 
-- `./node_modules/.bin/tsc --noEmit`
-- `npm test`
-- `npm run build`
+- `vp check`
+- `vp test`
+- `vp build`
 
 If you change Worker bindings or env usage, also run:
 
-- `npm run cf-typegen`
+- `vp run cf-typegen`
 
 ## Notes
 
 - The original CLI script is intentionally gone; this repo is now app-first.
 - Snapshot accuracy is still based on live pagination over Sui GraphQL, so it
   can drift slightly during execution.
+- Generated files `src/routeTree.gen.ts` and `worker-configuration.d.ts` are
+  excluded from Vite+ formatting and linting.
+- This repo does not manage Vite+ commit hooks, editor scaffolding, or agent
+  scaffolding.

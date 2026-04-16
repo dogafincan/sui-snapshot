@@ -1,11 +1,11 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { fetchSuiHolderSnapshot } from "@/lib/sui-snapshot.server"
-import { normalizeCoinType } from "@/lib/sui-snapshot"
+import { fetchSuiHolderSnapshot } from "@/lib/sui-snapshot.server";
+import { normalizeCoinType } from "@/lib/sui-snapshot";
 
-const ADDRESS_A = `0x${"a".repeat(64)}`
-const ADDRESS_B = `0x${"b".repeat(64)}`
-const ADDRESS_C = `0x${"c".repeat(64)}`
+const ADDRESS_A = `0x${"a".repeat(64)}`;
+const ADDRESS_B = `0x${"b".repeat(64)}`;
+const ADDRESS_C = `0x${"c".repeat(64)}`;
 
 function jsonResponse(payload: unknown, init?: ResponseInit) {
   return new Response(JSON.stringify(payload), {
@@ -14,16 +14,16 @@ function jsonResponse(payload: unknown, init?: ResponseInit) {
     },
     status: 200,
     ...init,
-  })
+  });
 }
 
 describe("fetchSuiHolderSnapshot", () => {
-  const fetchMock = vi.fn<typeof fetch>()
+  const fetchMock = vi.fn<typeof fetch>();
 
   afterEach(() => {
-    fetchMock.mockReset()
-    vi.unstubAllGlobals()
-  })
+    fetchMock.mockReset();
+    vi.unstubAllGlobals();
+  });
 
   it("aggregates paginated balances and computes proportional airdrops", async () => {
     fetchMock
@@ -79,19 +79,19 @@ describe("fetchSuiHolderSnapshot", () => {
             },
           },
         }),
-      )
+      );
 
-    vi.stubGlobal("fetch", fetchMock)
+    vi.stubGlobal("fetch", fetchMock);
 
     const snapshot = await fetchSuiHolderSnapshot({
       coinAddress: normalizeCoinType("0x2::sui::SUI"),
       airdropAmount: "1",
       excludedAddresses: [],
-    })
+    });
 
-    expect(fetchMock).toHaveBeenCalledTimes(3)
-    expect(snapshot.meta.holderCount).toBe(3)
-    expect(snapshot.meta.totalBalance).toBe("5")
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(snapshot.meta.holderCount).toBe(3);
+    expect(snapshot.meta.totalBalance).toBe("5");
     expect(snapshot.rows).toEqual([
       expect.objectContaining({
         rank: 1,
@@ -111,8 +111,8 @@ describe("fetchSuiHolderSnapshot", () => {
         balance: "0.5",
         airdropAmount: "0.1",
       }),
-    ])
-  })
+    ]);
+  });
 
   it("surfaces malformed GraphQL payloads", async () => {
     fetchMock
@@ -125,9 +125,9 @@ describe("fetchSuiHolderSnapshot", () => {
           },
         }),
       )
-      .mockResolvedValueOnce(jsonResponse({ data: {} }))
+      .mockResolvedValueOnce(jsonResponse({ data: {} }));
 
-    vi.stubGlobal("fetch", fetchMock)
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(
       fetchSuiHolderSnapshot({
@@ -135,12 +135,12 @@ describe("fetchSuiHolderSnapshot", () => {
         airdropAmount: undefined,
         excludedAddresses: [],
       }),
-    ).rejects.toThrow("Missing data.objects in GraphQL response.")
-  })
+    ).rejects.toThrow("Missing data.objects in GraphQL response.");
+  });
 
   it("throws on upstream non-200 responses", async () => {
-    fetchMock.mockResolvedValueOnce(new Response("{}", { status: 503 }))
-    vi.stubGlobal("fetch", fetchMock)
+    fetchMock.mockResolvedValueOnce(new Response("{}", { status: 503 }));
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(
       fetchSuiHolderSnapshot({
@@ -148,6 +148,6 @@ describe("fetchSuiHolderSnapshot", () => {
         airdropAmount: undefined,
         excludedAddresses: [],
       }),
-    ).rejects.toThrow("Sui GraphQL request failed with HTTP 503.")
-  })
-})
+    ).rejects.toThrow("Sui GraphQL request failed with HTTP 503.");
+  });
+});

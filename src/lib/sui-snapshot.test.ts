@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test";
 
 import {
   allocateAirdropShares,
@@ -9,16 +9,14 @@ import {
   parseUnits,
   snapshotInputSchema,
   type SnapshotResult,
-} from "@/lib/sui-snapshot"
+} from "@/lib/sui-snapshot";
 
-const ADDRESS_A = `0x${"1".padStart(64, "0")}`
-const ADDRESS_B = `0x${"2".padStart(64, "0")}`
+const ADDRESS_A = `0x${"1".padStart(64, "0")}`;
+const ADDRESS_B = `0x${"2".padStart(64, "0")}`;
 
 describe("sui snapshot helpers", () => {
   it("normalizes coin types and excluded addresses", () => {
-    expect(normalizeCoinType("0x2::sui::SUI")).toBe(
-      `0x${"2".padStart(64, "0")}::sui::SUI`,
-    )
+    expect(normalizeCoinType("0x2::sui::SUI")).toBe(`0x${"2".padStart(64, "0")}::sui::SUI`);
 
     expect(
       normalizeExcludedAddresses([
@@ -26,14 +24,14 @@ describe("sui snapshot helpers", () => {
         ADDRESS_A,
         "0x0000000000000000000000000000000000000000000000000000000000000001",
       ]),
-    ).toEqual([ADDRESS_A])
-  })
+    ).toEqual([ADDRESS_A]);
+  });
 
   it("formats and parses decimal unit strings", () => {
-    expect(parseUnits("123.45", 2)).toBe(12_345n)
-    expect(formatUnits(12_345n, 2)).toBe("123.45")
-    expect(formatUnits(5n, 0)).toBe("5")
-  })
+    expect(parseUnits("123.45", 2)).toBe(12_345n);
+    expect(formatUnits(12_345n, 2)).toBe("123.45");
+    expect(formatUnits(5n, 0)).toBe("5");
+  });
 
   it("allocates proportional airdrops and assigns the remainder to the top holder", () => {
     const allocation = allocateAirdropShares(
@@ -43,22 +41,18 @@ describe("sui snapshot helpers", () => {
       ],
       10n,
       new Set<string>(),
-    )
+    );
 
-    expect(allocation.eligibleHolderCount).toBe(2)
-    expect(allocation.allocations.get(ADDRESS_A)).toBe(7n)
-    expect(allocation.allocations.get(ADDRESS_B)).toBe(3n)
-  })
+    expect(allocation.eligibleHolderCount).toBe(2);
+    expect(allocation.allocations.get(ADDRESS_A)).toBe(7n);
+    expect(allocation.allocations.get(ADDRESS_B)).toBe(3n);
+  });
 
   it("rejects airdrops when no eligible holder remains", () => {
     expect(() =>
-      allocateAirdropShares(
-        [{ address: ADDRESS_A, rawBalance: 5n }],
-        100n,
-        new Set([ADDRESS_A]),
-      ),
-    ).toThrow("No eligible holders remain after exclusions.")
-  })
+      allocateAirdropShares([{ address: ADDRESS_A, rawBalance: 5n }], 100n, new Set([ADDRESS_A])),
+    ).toThrow("No eligible holders remain after exclusions.");
+  });
 
   it("requires an airdrop amount when exclusions are provided", () => {
     expect(() =>
@@ -66,8 +60,8 @@ describe("sui snapshot helpers", () => {
         coinAddress: "0x2::sui::SUI",
         excludedAddresses: [ADDRESS_A],
       }),
-    ).toThrow("Excluded addresses can only be used when an airdrop amount is provided.")
-  })
+    ).toThrow("Excluded addresses can only be used when an airdrop amount is provided.");
+  });
 
   it("builds csv output that matches the current public format", () => {
     const snapshot: SnapshotResult = {
@@ -92,10 +86,10 @@ describe("sui snapshot helpers", () => {
           rawAirdropAmount: "100",
         },
       ],
-    }
+    };
 
     expect(buildSnapshotCsv(snapshot)).toBe(
       `rank,address,balance,airdrop_amount\n1,${ADDRESS_A},5,1\n`,
-    )
-  })
-})
+    );
+  });
+});

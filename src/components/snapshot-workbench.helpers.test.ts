@@ -1,12 +1,12 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test";
 
 import {
   buildSnapshotDownload,
   buildSnapshotInputFromForm,
-} from "@/components/snapshot-workbench.helpers"
-import type { SnapshotResult } from "@/lib/sui-snapshot"
+} from "@/components/snapshot-workbench.helpers";
+import type { SnapshotResult } from "@/lib/sui-snapshot";
 
-const ADDRESS_A = `0x${"a".repeat(64)}`
+const ADDRESS_A = `0x${"a".repeat(64)}`;
 
 describe("snapshot workbench helpers", () => {
   it("validates and normalizes form input", () => {
@@ -19,12 +19,9 @@ describe("snapshot workbench helpers", () => {
     ).toEqual({
       coinAddress: `0x${"2".padStart(64, "0")}::sui::SUI`,
       airdropAmount: "1000.5",
-      excludedAddresses: [
-        `0x${"1".padStart(64, "0")}`,
-        `0x${"2".padStart(64, "0")}`,
-      ],
-    })
-  })
+      excludedAddresses: [`0x${"1".padStart(64, "0")}`, `0x${"2".padStart(64, "0")}`],
+    });
+  });
 
   it("creates a stable csv download payload", () => {
     const snapshot: SnapshotResult = {
@@ -46,11 +43,11 @@ describe("snapshot workbench helpers", () => {
           rawBalance: "500",
         },
       ],
-    }
+    };
 
     expect(buildSnapshotDownload(snapshot)).toEqual({
       filename: "000000000002-sui-SUI-snapshot.csv",
       csv: `rank,address,balance\n1,${ADDRESS_A},5\n`,
-    })
-  })
-})
+    });
+  });
+});
