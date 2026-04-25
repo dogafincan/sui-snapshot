@@ -1,8 +1,7 @@
 import {
   addDecimalAmounts,
   buildSnapshotResult,
-  compactCoinType,
-  normalizeDecimalAmount,
+  formatUnits,
   normalizeSuiAddress,
   type SnapshotBalanceRow,
   type SnapshotPageBatchInput,
@@ -10,209 +9,242 @@ import {
   type SnapshotResult,
 } from "@/lib/sui-snapshot";
 
-const BLOCKBERRY_HOLDERS_ENDPOINT = "https://api.blockberry.one/sui/v1/coins";
-const BLOCKBERRY_API_KEY_ENV = "BLOCKBERRY_API_KEY";
+const DEFAULT_ENDPOINT = "https://graphql.mainnet.sui.io/graphql";
 const REQUEST_TIMEOUT_MS = 45_000;
-const PAGE_SIZE = 100;
-const PAGES_PER_BATCH = 20;
-const MAX_RATE_LIMIT_RETRIES = 3;
-const DEFAULT_RATE_LIMIT_RETRY_MS = 1_500;
+const PAGE_SIZE = 50;
+const PAGES_PER_BATCH = 35;
+
+const COIN_METADATA_QUERY = `
+query CoinMetadata($coinType: String!) {
+  coinMetadata(coinType: $coinType) {
+    decimals
+  }
+}
+`;
+
+const OBJECTS_QUERY = `
+query Snapshot($type: String!, $first: Int!, $after: String) {
+  objects(first: $first, after: $after, filter: { type: $type }) {
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    nodes {
+      owner {
+        __typename
+        ... on AddressOwner {
+          address {
+            address
+          }
+        }
+        ... on ConsensusAddressOwner {
+          address {
+            address
+          }
+        }
+      }
+      asMoveObject {
+        contents {
+          json
+        }
+      }
+    }
+  }
+}
+`;
 
 interface CloudflareEnv {
-  BLOCKBERRY_API_KEY?: string;
+  SUI_GRAPHQL_ENDPOINT?: string;
 }
 
-interface BlockberryHolder {
-  holderAddress?: string | null;
-  amount?: number | string | null;
+interface GraphQLError {
+  message?: string;
 }
 
-interface BlockberryPage {
-  content?: BlockberryHolder[] | null;
-  last?: boolean | null;
-  numberOfElements?: number | null;
+interface GraphQLPayload<TData> {
+  data?: TData | null;
+  errors?: GraphQLError[];
 }
 
-async function resolveBlockberryApiKey() {
+interface CoinMetadataResponse {
+  coinMetadata?: {
+    decimals?: number | null;
+  } | null;
+}
+
+interface ObjectsResponse {
+  objects?: {
+    pageInfo?: {
+      hasNextPage?: boolean | null;
+      endCursor?: string | null;
+    } | null;
+    nodes?: Array<{
+      owner?: {
+        address?: {
+          address?: string | null;
+        } | null;
+      } | null;
+      asMoveObject?: {
+        contents?: {
+          json?: {
+            balance?: string | number | null;
+          } | null;
+        } | null;
+      } | null;
+    }>;
+  } | null;
+}
+
+async function resolveEndpoint() {
   try {
     const cloudflare = (await import("cloudflare:workers")) as {
       env?: CloudflareEnv;
     };
 
-    const configured = cloudflare.env?.BLOCKBERRY_API_KEY?.trim();
+    const configured = cloudflare.env?.SUI_GRAPHQL_ENDPOINT?.trim();
     if (configured) {
       return configured;
     }
   } catch {
-    // Tests and non-Worker tooling resolve secrets through process.env below.
+    // Tests and non-Worker tooling resolve optional endpoint overrides below.
   }
 
-  const configured = process.env.BLOCKBERRY_API_KEY?.trim();
-  if (configured) {
-    return configured;
-  }
-
-  throw new Error(
-    `Missing ${BLOCKBERRY_API_KEY_ENV}. Set it in .dev.vars for local development and as a Cloudflare Worker secret for deployed runs.`,
-  );
+  return process.env.SUI_GRAPHQL_ENDPOINT?.trim() || DEFAULT_ENDPOINT;
 }
 
-function buildBlockberryHoldersUrl(coinType: string, page: number) {
-  const url = new URL(
-    `${BLOCKBERRY_HOLDERS_ENDPOINT}/${encodeURIComponent(compactCoinType(coinType))}/holders`,
-  );
-
-  url.searchParams.set("page", String(page));
-  url.searchParams.set("size", String(PAGE_SIZE));
-  url.searchParams.set("orderBy", "DESC");
-  url.searchParams.set("sortBy", "AMOUNT");
-
-  return url;
-}
-
-function sleep(ms: number, signal: AbortSignal) {
-  return new Promise<void>((resolve, reject) => {
-    const timeout = globalThis.setTimeout(resolve, ms);
-
-    signal.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(timeout);
-        reject(new DOMException("The operation was aborted.", "AbortError"));
-      },
-      { once: true },
-    );
-  });
-}
-
-function readRetryDelayMs(response: Response, attempt: number) {
-  const retryAfter = response.headers.get("retry-after")?.trim();
-
-  if (retryAfter) {
-    const retryAfterSeconds = Number(retryAfter);
-    if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0) {
-      return retryAfterSeconds * 1_000;
-    }
-
-    const retryAfterDate = Date.parse(retryAfter);
-    if (Number.isFinite(retryAfterDate)) {
-      return Math.max(retryAfterDate - Date.now(), 0);
-    }
-  }
-
-  return DEFAULT_RATE_LIMIT_RETRY_MS * 2 ** attempt;
-}
-
-async function fetchBlockberryPage(
-  apiKey: string,
-  coinType: string,
-  page: number,
+async function postGraphQL<TData>(
+  endpoint: string,
+  query: string,
+  variables: Record<string, unknown>,
   signal: AbortSignal,
 ) {
-  const url = buildBlockberryHoldersUrl(coinType, page);
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ query, variables }),
+    signal,
+  });
 
-  for (let attempt = 0; attempt <= MAX_RATE_LIMIT_RETRIES; attempt += 1) {
-    const response = await fetch(url, {
-      headers: {
-        accept: "application/json",
-        "x-api-key": apiKey,
-      },
-      signal,
-    });
-
-    if (response.status === 429) {
-      if (attempt === MAX_RATE_LIMIT_RETRIES) {
-        throw new Error("Blockberry rate limited the snapshot request. Wait a minute and retry.");
-      }
-
-      await sleep(readRetryDelayMs(response, attempt), signal);
-      continue;
-    }
-
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        throw new Error(`Blockberry rejected the request. Check ${BLOCKBERRY_API_KEY_ENV}.`);
-      }
-
-      throw new Error(`Blockberry holders request failed with HTTP ${response.status}.`);
-    }
-
-    const payload = (await response.json()) as BlockberryPage;
-
-    if (!Array.isArray(payload.content)) {
-      throw new Error("Missing content in Blockberry holders response.");
-    }
-
-    return {
-      holders: payload.content,
-      last: payload.last === true || payload.numberOfElements === 0 || payload.content.length === 0,
-    };
+  if (!response.ok) {
+    throw new Error(`Sui GraphQL request failed with HTTP ${response.status}.`);
   }
 
-  throw new Error("Blockberry holders request failed before returning data.");
+  const payload = (await response.json()) as GraphQLPayload<TData>;
+  if (payload.errors?.length) {
+    const message =
+      payload.errors.find((error) => error.message)?.message ??
+      "Sui GraphQL returned an unknown error.";
+    throw new Error(message);
+  }
+
+  if (!payload.data) {
+    throw new Error("Missing data in GraphQL response.");
+  }
+
+  return payload.data;
 }
 
-function readHolderBalance(holder: BlockberryHolder) {
-  if (holder.amount === undefined || holder.amount === null) {
-    throw new Error("Encountered a Blockberry holder without an amount.");
+async function fetchCoinDecimals(endpoint: string, coinAddress: string, signal: AbortSignal) {
+  const metadata = await postGraphQL<CoinMetadataResponse>(
+    endpoint,
+    COIN_METADATA_QUERY,
+    {
+      coinType: coinAddress,
+    },
+    signal,
+  );
+
+  const decimals = metadata.coinMetadata?.decimals;
+  return typeof decimals === "number" && Number.isInteger(decimals) && decimals >= 0 ? decimals : 0;
+}
+
+function readCoinObjectBalance(
+  node: NonNullable<NonNullable<ObjectsResponse["objects"]>["nodes"]>[number],
+  decimals: number,
+) {
+  const ownerAddress = node.owner?.address?.address;
+  if (!ownerAddress) {
+    throw new Error("Encountered a coin object without an address owner.");
   }
 
-  return normalizeDecimalAmount(String(holder.amount));
+  const rawBalanceValue = node.asMoveObject?.contents?.json?.balance;
+  if (rawBalanceValue === undefined || rawBalanceValue === null) {
+    throw new Error("Encountered a coin object without a balance.");
+  }
+
+  return {
+    address: normalizeSuiAddress(ownerAddress),
+    balance: formatUnits(BigInt(String(rawBalanceValue)), decimals),
+  };
 }
 
 export async function fetchSuiHolderSnapshotBatch(
   input: SnapshotPageBatchInput,
 ): Promise<SnapshotPageBatchResult> {
-  const apiKey = await resolveBlockberryApiKey();
+  const endpoint = await resolveEndpoint();
   const controller = new AbortController();
   const timeout = globalThis.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
+    const decimals = await fetchCoinDecimals(endpoint, input.coinAddress, controller.signal);
     const balances = new Map<string, string>();
-    let page = input.startPage;
+    let cursor = input.cursor;
+    let nextCursor: string | null = input.cursor;
     let pagesFetched = 0;
-    let holdersFetched = 0;
+    let objectsFetched = 0;
     let reachedLastPage = false;
 
     while (pagesFetched < PAGES_PER_BATCH) {
-      const snapshotPage = await fetchBlockberryPage(
-        apiKey,
-        input.coinAddress,
-        page,
+      const snapshotPage = await postGraphQL<ObjectsResponse>(
+        endpoint,
+        OBJECTS_QUERY,
+        {
+          type: `0x2::coin::Coin<${input.coinAddress}>`,
+          first: PAGE_SIZE,
+          after: cursor,
+        },
         controller.signal,
       );
 
-      for (const holder of snapshotPage.holders) {
-        if (!holder.holderAddress) {
-          throw new Error("Encountered a Blockberry holder without an address.");
-        }
+      const connection = snapshotPage.objects;
+      if (!connection) {
+        throw new Error("Missing data.objects in GraphQL response.");
+      }
 
-        const address = normalizeSuiAddress(holder.holderAddress);
-        const balance = readHolderBalance(holder);
+      const nodes = connection.nodes ?? [];
+      for (const node of nodes) {
+        const { address, balance } = readCoinObjectBalance(node, decimals);
         balances.set(address, addDecimalAmounts(balances.get(address) ?? "0", balance));
       }
 
-      holdersFetched += snapshotPage.holders.length;
       pagesFetched += 1;
+      objectsFetched += nodes.length;
 
-      if (snapshotPage.last) {
+      if (!connection.pageInfo?.hasNextPage) {
         reachedLastPage = true;
         break;
       }
 
-      page += 1;
+      cursor = connection.pageInfo.endCursor ?? null;
+      if (!cursor) {
+        throw new Error("Missing pageInfo.endCursor while more results remain.");
+      }
+
+      nextCursor = cursor;
     }
 
     return {
       meta: {
-        endpoint: BLOCKBERRY_HOLDERS_ENDPOINT,
+        endpoint,
         coinAddress: input.coinAddress,
       },
       balances: Array.from(balances.entries()).map(([address, balance]) => ({ address, balance })),
-      startPage: input.startPage,
-      nextPage: reachedLastPage ? null : page,
+      cursor: input.cursor,
+      nextCursor: reachedLastPage ? null : nextCursor,
       pagesFetched,
-      holdersFetched,
+      objectsFetched,
     };
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
@@ -226,20 +258,20 @@ export async function fetchSuiHolderSnapshotBatch(
 }
 
 export async function fetchSuiHolderSnapshot(
-  input: Omit<SnapshotPageBatchInput, "startPage">,
+  input: Omit<SnapshotPageBatchInput, "cursor">,
 ): Promise<SnapshotResult> {
   const balances: SnapshotBalanceRow[] = [];
-  let startPage = 0;
+  let cursor: string | null = null;
 
   while (true) {
     const batch = await fetchSuiHolderSnapshotBatch({
       ...input,
-      startPage,
+      cursor,
     });
 
     balances.push(...batch.balances);
 
-    if (batch.nextPage === null) {
+    if (batch.nextCursor === null) {
       return buildSnapshotResult({
         endpoint: batch.meta.endpoint,
         coinAddress: input.coinAddress,
@@ -247,6 +279,6 @@ export async function fetchSuiHolderSnapshot(
       });
     }
 
-    startPage = batch.nextPage;
+    cursor = batch.nextCursor;
   }
 }

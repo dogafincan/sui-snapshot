@@ -4,7 +4,6 @@ import {
   addDecimalAmounts,
   buildSnapshotCsv,
   buildSnapshotResult,
-  compactCoinType,
   compareDecimalAmounts,
   formatUnits,
   normalizeDecimalAmount,
@@ -18,10 +17,6 @@ const ADDRESS_A = `0x${"1".padStart(64, "0")}`;
 describe("sui snapshot helpers", () => {
   it("normalizes coin types", () => {
     expect(normalizeCoinType("0x2::sui::SUI")).toBe(`0x${"2".padStart(64, "0")}::sui::SUI`);
-  });
-
-  it("compacts canonical coin types for upstream APIs that do not accept padded packages", () => {
-    expect(compactCoinType(`0x${"2".padStart(64, "0")}::sui::SUI`)).toBe("0x2::sui::SUI");
   });
 
   it("formats decimal unit strings", () => {
@@ -50,7 +45,7 @@ describe("sui snapshot helpers", () => {
   it("builds the canonical holder csv output", () => {
     const snapshot: SnapshotResult = {
       meta: {
-        endpoint: "https://api.blockberry.one/sui/v1/coins",
+        endpoint: "https://graphql.mainnet.sui.io/graphql",
         coinAddress: normalizeCoinType("0x2::sui::SUI"),
         holderCount: 1,
         totalBalance: "5",
@@ -71,7 +66,7 @@ describe("sui snapshot helpers", () => {
   it("assembles a ranked snapshot from batched decimal balance rows", () => {
     expect(
       buildSnapshotResult({
-        endpoint: "https://api.blockberry.one/sui/v1/coins",
+        endpoint: "https://graphql.mainnet.sui.io/graphql",
         coinAddress: normalizeCoinType("0x2::sui::SUI"),
         balances: [
           { address: ADDRESS_A, balance: "1.5" },
@@ -81,7 +76,7 @@ describe("sui snapshot helpers", () => {
       }),
     ).toEqual({
       meta: {
-        endpoint: "https://api.blockberry.one/sui/v1/coins",
+        endpoint: "https://graphql.mainnet.sui.io/graphql",
         coinAddress: normalizeCoinType("0x2::sui::SUI"),
         holderCount: 2,
         totalBalance: "3.75",

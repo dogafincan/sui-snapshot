@@ -6,11 +6,7 @@ import { normalizeCoinType } from "@/lib/sui-snapshot";
 const ADDRESS_A = `0x${"a".repeat(64)}`;
 const ADDRESS_B = `0x${"b".repeat(64)}`;
 const ADDRESS_C = `0x${"c".repeat(64)}`;
-const ORIGINAL_API_KEY = process.env.BLOCKBERRY_API_KEY;
-const HAD_ORIGINAL_API_KEY = Object.prototype.hasOwnProperty.call(
-  process.env,
-  "BLOCKBERRY_API_KEY",
-);
+const DEFAULT_ENDPOINT = "https://graphql.mainnet.sui.io/graphql";
 
 function jsonResponse(payload: unknown, init?: ResponseInit) {
   return new Response(JSON.stringify(payload), {
@@ -22,61 +18,79 @@ function jsonResponse(payload: unknown, init?: ResponseInit) {
   });
 }
 
-function stubApiKey() {
-  process.env.BLOCKBERRY_API_KEY = "test-api-key";
+function metadataResponse(decimals = 2) {
+  return jsonResponse({
+    data: {
+      coinMetadata: {
+        decimals,
+      },
+    },
+  });
 }
 
-function restoreApiKey() {
-  if (!HAD_ORIGINAL_API_KEY) {
-    Reflect.deleteProperty(process.env, "BLOCKBERRY_API_KEY");
-    return;
+function objectsResponse({
+  nodes,
+  hasNextPage,
+  endCursor,
+}: {
+  nodes: Array<{ owner: string; balance: string }>;
+  hasNextPage: boolean;
+  endCursor: string | null;
+}) {
+  return jsonResponse({
+    data: {
+      objects: {
+        pageInfo: {
+          hasNextPage,
+          endCursor,
+        },
+        nodes: nodes.map((node) => ({
+          owner: { address: { address: node.owner } },
+          asMoveObject: { contents: { json: { balance: node.balance } } },
+        })),
+      },
+    },
+  });
+}
+
+function readPostBody(callIndex: number) {
+  const [, init] = fetchMock.mock.calls[callIndex] ?? [];
+  if (typeof init?.body !== "string") {
+    throw new Error("Expected GraphQL request body to be a string.");
   }
 
-  process.env.BLOCKBERRY_API_KEY = ORIGINAL_API_KEY;
+  return JSON.parse(init.body);
 }
 
-describe("fetchSuiHolderSnapshotBatch", () => {
-  const fetchMock = vi.fn<typeof fetch>();
+const fetchMock = vi.fn<typeof fetch>();
 
+describe("fetchSuiHolderSnapshotBatch", () => {
   afterEach(() => {
     fetchMock.mockReset();
     vi.unstubAllGlobals();
-    restoreApiKey();
   });
 
-  it("fetches Blockberry holder pages into balance rows", async () => {
-    stubApiKey();
+  it("fetches Sui GraphQL coin object pages into balance rows", async () => {
     fetchMock
+      .mockResolvedValueOnce(metadataResponse())
       .mockResolvedValueOnce(
-        jsonResponse({
-          content: [
-            {
-              holderAddress: ADDRESS_A,
-              amount: 2.5,
-            },
-            {
-              holderAddress: ADDRESS_B,
-              amount: 1.25,
-            },
+        objectsResponse({
+          nodes: [
+            { owner: ADDRESS_A, balance: "250" },
+            { owner: ADDRESS_B, balance: "125" },
           ],
-          last: false,
-          numberOfElements: 2,
+          hasNextPage: true,
+          endCursor: "cursor-2",
         }),
       )
       .mockResolvedValueOnce(
-        jsonResponse({
-          content: [
-            {
-              holderAddress: ADDRESS_A,
-              amount: 0.75,
-            },
-            {
-              holderAddress: ADDRESS_C,
-              amount: 0.5,
-            },
+        objectsResponse({
+          nodes: [
+            { owner: ADDRESS_A, balance: "75" },
+            { owner: ADDRESS_C, balance: "50" },
           ],
-          last: true,
-          numberOfElements: 2,
+          hasNextPage: false,
+          endCursor: null,
         }),
       );
 
@@ -84,13 +98,13 @@ describe("fetchSuiHolderSnapshotBatch", () => {
 
     const batch = await fetchSuiHolderSnapshotBatch({
       coinAddress: normalizeCoinType("0x2::sui::SUI"),
-      startPage: 0,
+      cursor: null,
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(batch).toEqual({
       meta: {
-        endpoint: "https://api.blockberry.one/sui/v1/coins",
+        endpoint: DEFAULT_ENDPOINT,
         coinAddress: normalizeCoinType("0x2::sui::SUI"),
       },
       balances: [
@@ -107,27 +121,22 @@ describe("fetchSuiHolderSnapshotBatch", () => {
           balance: "0.5",
         },
       ],
-      startPage: 0,
-      nextPage: null,
+      cursor: null,
+      nextCursor: null,
       pagesFetched: 2,
-      holdersFetched: 4,
+      objectsFetched: 4,
     });
   });
 
   it("stops each batch below the Worker free subrequest limit", async () => {
-    stubApiKey();
+    fetchMock.mockResolvedValueOnce(metadataResponse(0));
 
-    for (let page = 0; page < 20; page += 1) {
+    for (let page = 0; page < 35; page += 1) {
       fetchMock.mockResolvedValueOnce(
-        jsonResponse({
-          content: [
-            {
-              holderAddress: ADDRESS_A,
-              amount: page + 1,
-            },
-          ],
-          last: false,
-          numberOfElements: 1,
+        objectsResponse({
+          nodes: [{ owner: ADDRESS_A, balance: String(page + 1) }],
+          hasNextPage: true,
+          endCursor: `cursor-${page + 1}`,
         }),
       );
     }
@@ -136,163 +145,92 @@ describe("fetchSuiHolderSnapshotBatch", () => {
 
     const batch = await fetchSuiHolderSnapshotBatch({
       coinAddress: normalizeCoinType("0x2::sui::SUI"),
-      startPage: 10,
+      cursor: "starting-cursor",
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(20);
+    expect(fetchMock).toHaveBeenCalledTimes(36);
     expect(batch).toMatchObject({
       meta: {
-        endpoint: "https://api.blockberry.one/sui/v1/coins",
+        endpoint: DEFAULT_ENDPOINT,
         coinAddress: normalizeCoinType("0x2::sui::SUI"),
       },
-      startPage: 10,
-      nextPage: 30,
-      pagesFetched: 20,
-      holdersFetched: 20,
+      cursor: "starting-cursor",
+      nextCursor: "cursor-35",
+      pagesFetched: 35,
+      objectsFetched: 35,
     });
   });
 
-  it("can still assemble a full snapshot outside a Worker invocation", async () => {
-    stubApiKey();
-    fetchMock
-      .mockResolvedValueOnce(
-        jsonResponse({
-          content: [
-            {
-              holderAddress: ADDRESS_A,
-              amount: 2.5,
-            },
-          ],
-          last: false,
-          numberOfElements: 1,
-        }),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          content: [
-            {
-              holderAddress: ADDRESS_A,
-              amount: 0.75,
-            },
-          ],
-          last: true,
-          numberOfElements: 1,
-        }),
-      );
-
-    vi.stubGlobal("fetch", fetchMock);
-
-    const batch = await fetchSuiHolderSnapshotBatch({
-      coinAddress: normalizeCoinType("0x2::sui::SUI"),
-      startPage: 0,
-    });
-
-    expect(batch.meta).toEqual({
-      endpoint: "https://api.blockberry.one/sui/v1/coins",
-      coinAddress: normalizeCoinType("0x2::sui::SUI"),
-    });
-    expect(batch.balances).toEqual([{ address: ADDRESS_A, balance: "3.25" }]);
-  });
-
-  it("sends the api key and compact coin type to Blockberry", async () => {
-    stubApiKey();
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        content: [],
-        last: true,
-        numberOfElements: 0,
+  it("sends GraphQL variables for the canonical Coin type without an api key", async () => {
+    fetchMock.mockResolvedValueOnce(metadataResponse()).mockResolvedValueOnce(
+      objectsResponse({
+        nodes: [],
+        hasNextPage: false,
+        endCursor: null,
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
     await fetchSuiHolderSnapshotBatch({
       coinAddress: normalizeCoinType("0x2::sui::SUI"),
-      startPage: 0,
+      cursor: "after-cursor",
     });
 
-    const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(url).toBeDefined();
-    const requestUrl =
-      url instanceof URL ? url.toString() : url instanceof Request ? url.url : (url ?? "");
+    const metadataBody = readPostBody(0);
+    const objectsBody = readPostBody(1);
+    const [, objectRequestInit] = fetchMock.mock.calls[1] ?? [];
 
-    expect(decodeURIComponent(requestUrl)).toContain("/0x2::sui::SUI/holders");
-    expect(init?.headers).toMatchObject({
-      "x-api-key": "test-api-key",
+    expect(metadataBody.variables).toEqual({
+      coinType: normalizeCoinType("0x2::sui::SUI"),
     });
+    expect(objectsBody.variables).toEqual({
+      type: `0x2::coin::Coin<${normalizeCoinType("0x2::sui::SUI")}>`,
+      first: 50,
+      after: "after-cursor",
+    });
+    expect(objectRequestInit?.headers).not.toHaveProperty("x-api-key");
   });
 
-  it("requires a Blockberry api key", async () => {
-    Reflect.deleteProperty(process.env, "BLOCKBERRY_API_KEY");
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(
-      fetchSuiHolderSnapshotBatch({
-        coinAddress: normalizeCoinType("0x2::sui::SUI"),
-        startPage: 0,
-      }),
-    ).rejects.toThrow("Missing BLOCKBERRY_API_KEY.");
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("surfaces malformed Blockberry payloads", async () => {
-    stubApiKey();
-    fetchMock.mockResolvedValueOnce(jsonResponse({}));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(
-      fetchSuiHolderSnapshotBatch({
-        coinAddress: normalizeCoinType("0x2::sui::SUI"),
-        startPage: 0,
-      }),
-    ).rejects.toThrow("Missing content in Blockberry holders response.");
-  });
-
-  it("retries Blockberry rate limits before failing the batch", async () => {
-    stubApiKey();
+  it("surfaces malformed GraphQL object payloads", async () => {
     fetchMock
-      .mockResolvedValueOnce(
-        new Response("rate limited", {
-          status: 429,
-          headers: {
-            "retry-after": "0",
-          },
-        }),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          content: [
-            {
-              holderAddress: ADDRESS_A,
-              amount: 1,
-            },
-          ],
-          last: true,
-          numberOfElements: 1,
-        }),
-      );
+      .mockResolvedValueOnce(metadataResponse())
+      .mockResolvedValueOnce(jsonResponse({ data: {} }));
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
       fetchSuiHolderSnapshotBatch({
         coinAddress: normalizeCoinType("0x2::sui::SUI"),
-        startPage: 0,
+        cursor: null,
       }),
-    ).resolves.toMatchObject({
-      balances: [{ address: ADDRESS_A, balance: "1" }],
-    });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    ).rejects.toThrow("Missing data.objects in GraphQL response.");
+  });
+
+  it("surfaces GraphQL errors", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: null,
+        errors: [{ message: "Page size is too large: 100 > 50" }],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      fetchSuiHolderSnapshotBatch({
+        coinAddress: normalizeCoinType("0x2::sui::SUI"),
+        cursor: null,
+      }),
+    ).rejects.toThrow("Page size is too large: 100 > 50");
   });
 
   it("throws on upstream non-200 responses", async () => {
-    stubApiKey();
     fetchMock.mockResolvedValueOnce(new Response("{}", { status: 503 }));
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
       fetchSuiHolderSnapshotBatch({
         coinAddress: normalizeCoinType("0x2::sui::SUI"),
-        startPage: 0,
+        cursor: null,
       }),
-    ).rejects.toThrow("Blockberry holders request failed with HTTP 503.");
+    ).rejects.toThrow("Sui GraphQL request failed with HTTP 503.");
   });
 });

@@ -31,10 +31,10 @@ export interface SnapshotBalanceRow {
 export interface SnapshotPageBatchResult {
   meta: Pick<SnapshotMeta, "endpoint" | "coinAddress">;
   balances: SnapshotBalanceRow[];
-  startPage: number;
-  nextPage: number | null;
+  cursor: string | null;
+  nextCursor: string | null;
   pagesFetched: number;
-  holdersFetched: number;
+  objectsFetched: number;
 }
 
 export function toErrorMessage(error: unknown) {
@@ -57,12 +57,6 @@ export function normalizeSuiAddress(value: string) {
   return `0x${match[1].toLowerCase().padStart(64, "0")}`;
 }
 
-export function compactSuiAddress(value: string) {
-  const normalized = normalizeSuiAddress(value);
-  const compact = normalized.slice(2).replace(/^0+/, "");
-  return `0x${compact || "0"}`;
-}
-
 export function normalizeCoinType(value: string) {
   const trimmed = value.trim();
   const match = trimmed.match(COIN_TYPE_PATTERN);
@@ -73,11 +67,6 @@ export function normalizeCoinType(value: string) {
 
   const [, packageAddress, moduleName, tokenName] = match;
   return `${normalizeSuiAddress(packageAddress)}::${moduleName}::${tokenName}`;
-}
-
-export function compactCoinType(value: string) {
-  const [packageAddress, moduleName, tokenName] = normalizeCoinType(value).split("::");
-  return `${compactSuiAddress(packageAddress)}::${moduleName}::${tokenName}`;
 }
 
 const coinTypeSchema = z
@@ -103,7 +92,7 @@ export const snapshotInputSchema = z.object({
 export type SnapshotInput = z.infer<typeof snapshotInputSchema>;
 
 export const snapshotPageBatchInputSchema = snapshotInputSchema.extend({
-  startPage: z.number().int().min(0),
+  cursor: z.string().nullable(),
 });
 
 export type SnapshotPageBatchInput = z.infer<typeof snapshotPageBatchInputSchema>;

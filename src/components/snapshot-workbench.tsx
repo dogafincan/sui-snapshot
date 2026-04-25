@@ -29,7 +29,7 @@ type RunSnapshotBatch = (payload: {
 }) => Promise<SnapshotPageBatchResult>;
 
 interface SnapshotProgress {
-  holdersFetched: number;
+  objectsFetched: number;
   pagesFetched: number;
 }
 
@@ -116,7 +116,7 @@ function EmptyState() {
           <CardHeader>
             <CardTitle>Live snapshot</CardTitle>
             <CardDescription>
-              Fetch the indexed holder set and aggregate balances by owner address.
+              Scan live coin objects and aggregate balances by owner address.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -157,20 +157,20 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
     }
 
     setIsSubmitting(true);
-    setSnapshotProgress({ holdersFetched: 0, pagesFetched: 0 });
+    setSnapshotProgress({ objectsFetched: 0, pagesFetched: 0 });
 
     try {
       const balances: SnapshotBalanceRow[] = [];
-      let nextPage: number | null = 0;
+      let nextCursor: string | null = null;
       let pagesFetched = 0;
-      let holdersFetched = 0;
+      let objectsFetched = 0;
       let endpoint: string | null = null;
 
-      while (nextPage !== null) {
+      while (true) {
         const batch = await runSnapshotBatch({
           data: {
             ...payload,
-            startPage: nextPage,
+            cursor: nextCursor,
           },
         });
 
@@ -181,20 +181,22 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
         endpoint = batch.meta.endpoint;
         balances.push(...batch.balances);
         pagesFetched += batch.pagesFetched;
-        holdersFetched += batch.holdersFetched;
-        nextPage = batch.nextPage;
+        objectsFetched += batch.objectsFetched;
+        nextCursor = batch.nextCursor;
 
         startTransition(() => {
-          setSnapshotProgress({ holdersFetched, pagesFetched });
+          setSnapshotProgress({ objectsFetched, pagesFetched });
         });
 
-        if (nextPage !== null) {
-          await wait(BATCH_PAUSE_MS);
+        if (nextCursor === null) {
+          break;
         }
+
+        await wait(BATCH_PAUSE_MS);
       }
 
       const nextSnapshot = buildSnapshotResult({
-        endpoint: endpoint ?? "https://api.blockberry.one/sui/v1/coins",
+        endpoint: endpoint ?? "https://graphql.mainnet.sui.io/graphql",
         coinAddress: payload.coinAddress,
         balances,
       });
@@ -278,7 +280,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                   <>
                     <LoaderCircle className="animate-spin" data-icon="inline-start" />
                     {snapshotProgress && snapshotProgress.pagesFetched > 0
-                      ? `${formatInteger(snapshotProgress.holdersFetched)} holders fetched`
+                      ? `${formatInteger(snapshotProgress.objectsFetched)} coin objects scanned`
                       : "Running snapshot"}
                   </>
                 ) : (
@@ -299,7 +301,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                 <SummaryCard
                   label="Holders"
                   value={formatInteger(snapshot.meta.holderCount)}
-                  description="Indexed balances returned for the coin type."
+                  description="Coin object balances aggregated by owner."
                 />
                 <SummaryCard
                   label="Total balance"
