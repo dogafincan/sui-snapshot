@@ -5,7 +5,7 @@ TanStack Start web app for running Sui holder snapshots on Cloudflare Workers.
 The app:
 
 - scans Sui GraphQL RPC for live `Coin<T>` objects in Worker-safe page batches,
-- aggregates balances by owner address,
+- aggregates non-zero balances by owner address,
 - renders the full result set in a TanStack Table UI,
 - exports the same rows as CSV without rerunning the snapshot.
 
@@ -30,7 +30,7 @@ Input:
 
 Output:
 
-- ranked holder table
+- ranked non-zero holder table
 - client-side CSV download with exactly `rank,address,balance`
 
 ## Stack
@@ -162,6 +162,9 @@ vp run cf-typegen
   Avoid custom page chrome, decorative shells, or bespoke visual treatments.
 - Snapshot accuracy is based on live pagination over Sui GraphQL RPC, so it can
   drift slightly while large holder sets are scanned.
+- Zero-balance coin objects are excluded from holder counts, table rows, and CSV
+  exports.
 - Large holder sets are fetched across multiple server calls so each Worker
-  invocation stays below the Workers Free subrequest limit.
+  invocation stays below the Workers Free subrequest limit, while coin metadata
+  is carried across batches to avoid redundant requests.
 - The original CLI script has been removed; this repository is now web-app-first.

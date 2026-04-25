@@ -10,7 +10,7 @@ Core behavior:
 
 - Query Sui GraphQL RPC for live `Coin<T>` objects for a token type in
   Worker-safe page batches.
-- Aggregate balances by owner address.
+- Aggregate non-zero balances by owner address.
 - Render the result in a TanStack Table UI.
 - Export the returned rows as CSV client-side.
 
@@ -96,7 +96,7 @@ aligned with `wrangler.jsonc`.
 - Preserve the current public interface:
   - route `/`
   - input: `coinAddress`
-  - output: ranked rows with `rank`, `address`, and `balance`
+  - output: ranked non-zero rows with `rank`, `address`, and `balance`
 - Preserve the canonical CSV contract: `rank,address,balance`. Do not add
   airdrop amount columns here; airdrop amounts are chosen exclusively in
   `sui-airdrop`.
@@ -129,8 +129,11 @@ If you change Worker bindings or env usage, also run:
 - The original CLI script is intentionally gone; this repo is now app-first.
 - Snapshot accuracy is based on live pagination over Sui GraphQL RPC, so it can
   drift slightly while large holder sets are scanned.
+- Zero-balance coin objects are excluded from holder counts, table rows, and CSV
+  exports.
 - Large holder sets are fetched across multiple server calls so each Worker
-  invocation stays below the Workers Free subrequest limit.
+  invocation stays below the Workers Free subrequest limit, while coin metadata
+  is carried across batches to avoid redundant requests.
 - Generated files `src/routeTree.gen.ts` and `worker-configuration.d.ts` are
   excluded from Vite+ formatting and linting.
 - This repo does not manage Vite+ commit hooks, editor scaffolding, or agent
