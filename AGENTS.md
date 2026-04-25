@@ -8,8 +8,9 @@ function that runs the Sui holder snapshot logic on demand.
 
 Core behavior:
 
-- Query Blockberry's indexed holders endpoint for a token type in Worker-safe
-  page batches.
+- Query Sui GraphQL RPC for live `Coin<T>` objects for a token type in
+  Worker-safe page batches.
+- Aggregate balances by owner address.
 - Render the result in a TanStack Table UI.
 - Export the returned rows as CSV client-side.
 
@@ -77,12 +78,13 @@ Preview URL:
 
 ## Environment
 
-Required local/deployed Worker secret:
+The app defaults to:
 
-- `BLOCKBERRY_API_KEY`
+- `https://graphql.mainnet.sui.io/graphql`
 
-For local development, store it in `.dev.vars`. For deployed Workers, store it
-as a Cloudflare Worker secret. Do not commit real secret values.
+Optional override:
+
+- `SUI_GRAPHQL_ENDPOINT`
 
 If you add more Worker env vars, keep them documented in `README.md` and
 aligned with `wrangler.jsonc`.
@@ -125,8 +127,8 @@ If you change Worker bindings or env usage, also run:
 ## Notes
 
 - The original CLI script is intentionally gone; this repo is now app-first.
-- Snapshot accuracy follows Blockberry's indexed holder data for the requested
-  coin type.
+- Snapshot accuracy is based on live pagination over Sui GraphQL RPC, so it can
+  drift slightly while large holder sets are scanned.
 - Large holder sets are fetched across multiple server calls so each Worker
   invocation stays below the Workers Free subrequest limit.
 - Generated files `src/routeTree.gen.ts` and `worker-configuration.d.ts` are
