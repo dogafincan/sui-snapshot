@@ -8,8 +8,8 @@ function that runs the Sui holder snapshot logic on demand.
 
 Core behavior:
 
-- Query Sui GraphQL for all live `Coin<T>` objects for a token type.
-- Aggregate balances by owner address.
+- Query Blockberry's indexed holders endpoint for a token type in Worker-safe
+  page batches.
 - Render the result in a TanStack Table UI.
 - Export the returned rows as CSV client-side.
 
@@ -77,13 +77,12 @@ Preview URL:
 
 ## Environment
 
-The app defaults to:
+Required local/deployed Worker secret:
 
-- `https://graphql.mainnet.sui.io/graphql`
+- `BLOCKBERRY_API_KEY`
 
-Optional override:
-
-- `SUI_GRAPHQL_ENDPOINT`
+For local development, store it in `.dev.vars`. For deployed Workers, store it
+as a Cloudflare Worker secret. Do not commit real secret values.
 
 If you add more Worker env vars, keep them documented in `README.md` and
 aligned with `wrangler.jsonc`.
@@ -126,8 +125,10 @@ If you change Worker bindings or env usage, also run:
 ## Notes
 
 - The original CLI script is intentionally gone; this repo is now app-first.
-- Snapshot accuracy is still based on live pagination over Sui GraphQL, so it
-  can drift slightly during execution.
+- Snapshot accuracy follows Blockberry's indexed holder data for the requested
+  coin type.
+- Large holder sets are fetched across multiple server calls so each Worker
+  invocation stays below the Workers Free subrequest limit.
 - Generated files `src/routeTree.gen.ts` and `worker-configuration.d.ts` are
   excluded from Vite+ formatting and linting.
 - This repo does not manage Vite+ commit hooks, editor scaffolding, or agent

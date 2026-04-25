@@ -4,7 +4,7 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "sui-holders-web",
+  "name": "sui-holders-snapshot",
   "compatibility_date": "2026-04-10",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
@@ -12,6 +12,9 @@
     "enabled": true,
   },
   "upload_source_maps": true,
+  "secrets": {
+    "required": ["BLOCKBERRY_API_KEY"],
+  },
   /**
    * Smart Placement
    * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
