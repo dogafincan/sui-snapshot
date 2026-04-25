@@ -7,6 +7,8 @@ import { SnapshotWorkbench } from "@/components/snapshot-workbench";
 import { normalizeCoinType, type SnapshotPageBatchResult } from "@/lib/sui-snapshot";
 
 const ADDRESS_A = `0x${"a".repeat(64)}`;
+const PANS_COIN_TYPE =
+  "0xc9523f683256502be15ec4979098d510f67b6d3f0df02eebf124515014433270::pans::PANS";
 
 function snapshotBatch(overrides?: Partial<SnapshotPageBatchResult>): SnapshotPageBatchResult {
   return {
@@ -27,6 +29,17 @@ function snapshotBatch(overrides?: Partial<SnapshotPageBatchResult>): SnapshotPa
 describe("SnapshotWorkbench", () => {
   afterEach(() => {
     cleanup();
+  });
+
+  it("renders a concise initial form for the PANS coin type", () => {
+    const runSnapshotBatch = vi.fn();
+    const { container } = render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
+
+    expect((screen.getByLabelText("Coin address") as HTMLInputElement).value).toBe(PANS_COIN_TYPE);
+    expect(screen.queryByText("Snapshot parameters")).toBeNull();
+    expect(screen.queryByText("Inputs are normalized before the request is sent.")).toBeNull();
+    expect(screen.queryByText("Ready to run")).toBeNull();
+    expect(container.querySelector(".lucide-camera")).not.toBeNull();
   });
 
   it("clears validation errors when the coin input changes", async () => {

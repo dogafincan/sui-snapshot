@@ -1,5 +1,5 @@
 import { startTransition, type FormEvent, type ReactNode, useRef, useState } from "react";
-import { CircleStop, Download, LoaderCircle, RotateCw, Sparkles } from "lucide-react";
+import { Camera, CircleStop, Download, LoaderCircle, RotateCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { HoldersTable } from "@/components/holders-table";
@@ -42,6 +42,8 @@ interface SnapshotRunState extends SnapshotProgress {
 }
 
 const BATCH_PAUSE_MS = 1_500;
+const DEFAULT_COIN_ADDRESS =
+  "0xc9523f683256502be15ec4979098d510f67b6d3f0df02eebf124515014433270::pans::PANS";
 
 function formatInteger(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
@@ -135,37 +137,8 @@ function ResultsSkeleton() {
   );
 }
 
-function EmptyState() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Ready to run</CardTitle>
-        <CardDescription>Enter a Sui coin type to generate a ranked holder table.</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4 md:grid-cols-3">
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Live snapshot</CardTitle>
-            <CardDescription>
-              Scan live coin objects and aggregate non-zero balances by owner address.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>CSV export</CardTitle>
-            <CardDescription>
-              Review the table in the browser, then export the same rows as CSV.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunSnapshotBatch }) {
-  const [coinAddress, setCoinAddress] = useState("0x2::sui::SUI");
+  const [coinAddress, setCoinAddress] = useState(DEFAULT_COIN_ADDRESS);
   const [snapshot, setSnapshot] = useState<SnapshotResult | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -348,10 +321,6 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
 
       <section className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <Card className="h-fit lg:sticky lg:top-6">
-          <CardHeader>
-            <CardTitle>Snapshot parameters</CardTitle>
-            <CardDescription>Inputs are normalized before the request is sent.</CardDescription>
-          </CardHeader>
           <CardContent>
             <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
               <FieldGroup>
@@ -364,7 +333,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                     id="coin-address"
                     value={coinAddress}
                     onChange={(event) => handleCoinAddressChange(event.target.value)}
-                    placeholder="0x2::sui::SUI"
+                    placeholder={DEFAULT_COIN_ADDRESS}
                     autoComplete="off"
                   />
                 </Field>
@@ -407,7 +376,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                     </>
                   ) : (
                     <>
-                      <Sparkles data-icon="inline-start" />
+                      <Camera data-icon="inline-start" />
                       Generate snapshot
                     </>
                   )}
@@ -487,9 +456,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
             </>
           ) : isSubmitting ? (
             <ResultsSkeleton />
-          ) : (
-            <EmptyState />
-          )}
+          ) : null}
         </div>
       </section>
     </main>
