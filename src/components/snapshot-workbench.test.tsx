@@ -45,10 +45,23 @@ describe("SnapshotWorkbench", () => {
   it("renders an empty holder table before a snapshot is generated", () => {
     const runSnapshotBatch = vi.fn();
     render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
+    const holderDistribution = screen.getByText("Holder distribution");
+    const tableControlRow = holderDistribution.parentElement?.parentElement;
+    const tablePagination = screen.getByRole("button", { name: "Previous" }).parentElement
+      ?.parentElement;
+    const tablePaginationClasses = tablePagination?.className.split(/\s+/) ?? [];
+    const tableCard = holderDistribution.closest('[data-slot="card"]');
 
-    expect(screen.getByText("Holder distribution")).toBeTruthy();
+    expect(holderDistribution).toBeTruthy();
     expect(screen.getByText("0 visible non-zero holders across 1 pages.")).toBeTruthy();
     expect(screen.getByText("No holders match the current address filter.")).toBeTruthy();
+    expect(tableControlRow?.className).toContain("lg:items-start");
+    expect(tablePagination?.className).toContain("mt-auto");
+    expect(tablePaginationClasses).toContain("flex-row");
+    expect(tablePaginationClasses).toContain("items-center");
+    expect(tablePaginationClasses).toContain("justify-between");
+    expect(tablePaginationClasses).not.toContain("flex-col");
+    expect(tableCard?.className).toContain("flex-1");
     expect(screen.queryByText("Snapshot results")).toBeNull();
     expect(screen.queryByRole("button", { name: "Download CSV" })).toBeNull();
   });

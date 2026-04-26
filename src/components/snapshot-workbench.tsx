@@ -89,15 +89,15 @@ function downloadSnapshot(snapshot: SnapshotResult) {
 
 function ResultsSkeleton() {
   return (
-    <div className="flex flex-col gap-6">
-      <Card>
+    <div className="flex flex-1 flex-col gap-6">
+      <Card className="flex-1">
         <CardHeader>
           <div className="flex flex-col gap-3">
             <Skeleton className="h-5 w-36" />
             <Skeleton className="h-4 w-full max-w-md" />
           </div>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex flex-1 flex-col gap-4">
           <Skeleton className="h-16 w-full" />
           <Skeleton className="h-72 w-full" />
         </CardContent>
@@ -108,8 +108,8 @@ function ResultsSkeleton() {
 
 function EmptyHolderTable() {
   return (
-    <Card>
-      <CardContent>
+    <Card className="flex-1">
+      <CardContent className="flex flex-1 flex-col">
         <HoldersTable rows={[]} />
       </CardContent>
     </Card>
@@ -298,7 +298,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
         </p>
       </header>
 
-      <section className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
+      <section className="grid flex-1 gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <Card className="h-fit lg:sticky lg:top-6">
           <CardContent>
             <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
@@ -377,7 +377,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
           </CardContent>
         </Card>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex min-h-0 flex-col gap-6 self-stretch">
           {snapshot ? (
             <>
               {hasStaleSnapshot ? (
@@ -390,7 +390,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                 </Alert>
               ) : null}
 
-              <Card>
+              <Card className="flex-1">
                 <CardHeader>
                   <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -417,7 +417,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex flex-1 flex-col">
                   <HoldersTable rows={snapshot.rows} />
                 </CardContent>
               </Card>
