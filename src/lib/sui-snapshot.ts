@@ -63,7 +63,7 @@ export function normalizeCoinType(value: string) {
   const match = trimmed.match(COIN_TYPE_PATTERN);
 
   if (!match) {
-    throw new Error("Coin address must use the format 0xPACKAGE::MODULE::TOKEN.");
+    throw new Error("Use the coin type format 0xPACKAGE::MODULE::TOKEN.");
   }
 
   const [, packageAddress, moduleName, tokenName] = match;
@@ -73,7 +73,7 @@ export function normalizeCoinType(value: string) {
 const coinTypeSchema = z
   .string()
   .trim()
-  .min(1, "Coin address is required.")
+  .min(1, "Enter a coin type in 0xPACKAGE::MODULE::TOKEN format.")
   .superRefine((value, context) => {
     try {
       normalizeCoinType(value);

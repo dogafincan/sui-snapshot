@@ -17,6 +17,9 @@ const ADDRESS_A = `0x${"1".padStart(64, "0")}`;
 describe("sui snapshot helpers", () => {
   it("normalizes coin types", () => {
     expect(normalizeCoinType("0x2::sui::SUI")).toBe(`0x${"2".padStart(64, "0")}::sui::SUI`);
+    expect(() => normalizeCoinType("not-a-coin")).toThrow(
+      "Use the coin type format 0xPACKAGE::MODULE::TOKEN.",
+    );
   });
 
   it("formats decimal unit strings", () => {

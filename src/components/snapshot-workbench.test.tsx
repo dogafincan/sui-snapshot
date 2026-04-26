@@ -26,16 +26,24 @@ function snapshotBatch(overrides?: Partial<SnapshotPageBatchResult>): SnapshotPa
   };
 }
 
+function enterCoinAddress(value = PANS_COIN_TYPE) {
+  fireEvent.change(screen.getByLabelText("Coin address"), {
+    target: { value },
+  });
+}
+
 describe("SnapshotWorkbench", () => {
   afterEach(() => {
     cleanup();
   });
 
-  it("renders a concise initial form for the PANS coin type", () => {
+  it("renders a concise initial form with a descriptive coin type placeholder", () => {
     const runSnapshotBatch = vi.fn();
     const { container } = render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
+    const coinAddressInput = screen.getByLabelText("Coin address") as HTMLInputElement;
 
-    expect((screen.getByLabelText("Coin address") as HTMLInputElement).value).toBe(PANS_COIN_TYPE);
+    expect(coinAddressInput.value).toBe("");
+    expect(coinAddressInput.placeholder).toBe("Enter a Sui coin type");
     expect(screen.queryByText("Snapshot parameters")).toBeNull();
     expect(screen.queryByText("Inputs are normalized before the request is sent.")).toBeNull();
     expect(screen.queryByText("Ready to run")).toBeNull();
@@ -77,21 +85,20 @@ describe("SnapshotWorkbench", () => {
 
   it("clears validation errors when the coin input changes", async () => {
     const runSnapshotBatch = vi.fn();
-    render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
+    const { container } = render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
 
-    fireEvent.change(screen.getByLabelText("Coin address"), {
-      target: { value: "not-a-coin" },
-    });
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
-    expect(await screen.findByText("Validation error")).toBeTruthy();
+    expect(await screen.findByText("Check coin type")).toBeTruthy();
+    expect(screen.getByText("Enter a coin type in 0xPACKAGE::MODULE::TOKEN format.")).toBeTruthy();
+    expect(container.querySelector(".lucide-circle-alert")).not.toBeNull();
 
     fireEvent.change(screen.getByLabelText("Coin address"), {
       target: { value: "0x2::sui::SUI" },
     });
 
     await waitFor(() => {
-      expect(screen.queryByText("Validation error")).toBeNull();
+      expect(screen.queryByText("Check coin type")).toBeNull();
     });
   });
 
@@ -99,6 +106,7 @@ describe("SnapshotWorkbench", () => {
     const runSnapshotBatch = vi.fn().mockResolvedValue(snapshotBatch());
     render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
 
+    enterCoinAddress();
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
     expect(await screen.findByText("Snapshot results")).toBeTruthy();
@@ -115,6 +123,7 @@ describe("SnapshotWorkbench", () => {
     const runSnapshotBatch = vi.fn().mockResolvedValue(snapshotBatch());
     render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
 
+    enterCoinAddress();
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
     expect(await screen.findByText("Snapshot results")).toBeTruthy();
@@ -128,6 +137,7 @@ describe("SnapshotWorkbench", () => {
     const runSnapshotBatch = vi.fn().mockResolvedValue(snapshotBatch());
     render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
 
+    enterCoinAddress();
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
     expect(await screen.findByText("Snapshot results")).toBeTruthy();
@@ -146,6 +156,7 @@ describe("SnapshotWorkbench", () => {
     );
     render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
 
+    enterCoinAddress();
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
     expect(await screen.findByText("1 coin object scanned")).toBeTruthy();

@@ -1,5 +1,13 @@
 import { startTransition, type FormEvent, useRef, useState } from "react";
-import { Camera, CircleStop, Download, LoaderCircle, RotateCw, Sparkles } from "lucide-react";
+import {
+  Camera,
+  CircleAlert,
+  CircleStop,
+  Download,
+  LoaderCircle,
+  RotateCw,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { HoldersTable } from "@/components/holders-table";
@@ -41,8 +49,7 @@ interface SnapshotRunState extends SnapshotProgress {
 }
 
 const BATCH_PAUSE_MS = 1_500;
-const DEFAULT_COIN_ADDRESS =
-  "0xc9523f683256502be15ec4979098d510f67b6d3f0df02eebf124515014433270::pans::PANS";
+const COIN_ADDRESS_PLACEHOLDER = "Enter a Sui coin type";
 
 function formatInteger(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
@@ -117,7 +124,7 @@ function EmptyHolderTable() {
 }
 
 export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunSnapshotBatch }) {
-  const [coinAddress, setCoinAddress] = useState(DEFAULT_COIN_ADDRESS);
+  const [coinAddress, setCoinAddress] = useState("");
   const [snapshot, setSnapshot] = useState<SnapshotResult | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -312,7 +319,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                     id="coin-address"
                     value={coinAddress}
                     onChange={(event) => handleCoinAddressChange(event.target.value)}
-                    placeholder={DEFAULT_COIN_ADDRESS}
+                    placeholder={COIN_ADDRESS_PLACEHOLDER}
                     autoComplete="off"
                   />
                 </Field>
@@ -320,8 +327,8 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
 
               {formError ? (
                 <Alert variant="destructive">
-                  <Sparkles />
-                  <AlertTitle>Validation error</AlertTitle>
+                  <CircleAlert />
+                  <AlertTitle>Check coin type</AlertTitle>
                   <AlertDescription>{formError}</AlertDescription>
                 </Alert>
               ) : null}
