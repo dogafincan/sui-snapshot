@@ -4,7 +4,6 @@ import { toast } from "sonner";
 
 import { HoldersTable } from "@/components/holders-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -383,19 +382,26 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
 
               <Card>
                 <CardHeader>
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="secondary">Holder snapshot</Badge>
-                      </div>
+                  <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
                       <CardTitle>Snapshot results</CardTitle>
-                      <CardDescription>
-                        <span className="font-medium text-foreground">Coin type:</span>{" "}
-                        <code className="font-mono">{snapshot.meta.coinAddress}</code>
+                      <CardDescription className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline">
+                        <span className="shrink-0 font-medium text-foreground">Coin type:</span>
+                        <code
+                          className="block min-w-0 max-w-full truncate font-mono"
+                          title={snapshot.meta.coinAddress}
+                        >
+                          {snapshot.meta.coinAddress}
+                        </code>
                       </CardDescription>
                     </div>
 
-                    <Button type="button" variant="outline" onClick={handleDownload}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full sm:w-auto lg:shrink-0"
+                      onClick={handleDownload}
+                    >
                       <Download data-icon="inline-start" />
                       Download CSV
                     </Button>

@@ -90,6 +90,20 @@ describe("SnapshotWorkbench", () => {
     expect(screen.queryByText("CSV format")).toBeNull();
   });
 
+  it("renders a compact responsive snapshot results header", async () => {
+    const coinAddress = normalizeCoinType(PANS_COIN_TYPE);
+    const runSnapshotBatch = vi.fn().mockResolvedValue(snapshotBatch());
+    render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
+
+    expect(await screen.findByText("Snapshot results")).toBeTruthy();
+    expect(screen.queryByText("Holder snapshot")).toBeNull();
+    expect(screen.getByText(coinAddress).className).toContain("truncate");
+    expect(screen.getByRole("button", { name: "Download CSV" }).className).toContain("w-full");
+    expect(screen.getByRole("button", { name: "Download CSV" }).className).toContain("sm:w-auto");
+  });
+
   it("can pause a multi-batch snapshot and offer to resume", async () => {
     const runSnapshotBatch = vi.fn().mockResolvedValueOnce(
       snapshotBatch({
