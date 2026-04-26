@@ -56,7 +56,13 @@ describe("SnapshotWorkbench", () => {
     expect(holderDistribution).toBeTruthy();
     expect(screen.getByText("0 holders across 1 page.")).toBeTruthy();
     expect(screen.getByText("Search the current snapshot.")).toBeTruthy();
+    expect(screen.getByText("Rank")).toBeTruthy();
+    expect(screen.getByText("Address")).toBeTruthy();
+    expect(screen.getByText("Balance")).toBeTruthy();
     expect(screen.getByText("No holders match the current address filter.")).toBeTruthy();
+    expect(screen.queryByText("Balance rank")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Address" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Balance" })).toBeNull();
     expect(tableControlRow?.className).toContain("lg:items-start");
     expect(tableControlRow?.className).toContain("lg:grid-cols-2");
     expect(tableControlRow?.className).not.toContain("lg:flex-row");

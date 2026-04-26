@@ -4,10 +4,8 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  getSortedRowModel,
   type ColumnFiltersState,
   type PaginationState,
-  type SortingState,
 } from "@tanstack/react-table";
 
 import { HOLDERS_TABLE_PAGE_SIZE, createColumns } from "@/components/holders-table";
@@ -31,7 +29,6 @@ function makeRows(count: number): SnapshotRow[] {
 
 function buildTable(
   rows: SnapshotRow[],
-  sorting: SortingState,
   columnFilters: ColumnFiltersState,
   pagination: PaginationState,
 ) {
@@ -39,57 +36,53 @@ function buildTable(
     data: rows,
     columns: createColumns(),
     state: {
-      sorting,
       columnFilters,
       pagination,
     },
+    enableSorting: false,
     onStateChange: () => undefined,
     renderFallbackValue: null,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => row.address,
   });
 }
 
 describe("holders table model", () => {
-  it("sorts by decimal balance values", () => {
-    const rows = makeRows(3);
-    const table = buildTable(rows, [{ id: "rawBalance", desc: true }], [], {
+  it("preserves the returned holder order", () => {
+    const rows = makeRows(3).reverse();
+    const table = buildTable(rows, [], {
       pageIndex: 0,
       pageSize: HOLDERS_TABLE_PAGE_SIZE,
     });
 
-    expect(table.getRowModel().rows.map((row) => row.original.address)).toEqual([
-      makeAddress(3),
-      makeAddress(2),
-      makeAddress(1),
-    ]);
+    expect(table.getRowModel().rows.map((row) => row.original.address)).toEqual(
+      rows.map((row) => row.address),
+    );
   });
 
-  it("labels rank as balance rank", () => {
-    const rankHeader = createColumns()[0]?.header;
+  it("uses static non-sortable column labels", () => {
+    const columns = createColumns();
 
-    expect(rankHeader).toBe("Balance rank");
+    expect(columns.map((column) => column.header)).toEqual(["Rank", "Address", "Balance"]);
+    expect(columns.every((column) => column.enableSorting === false)).toBe(true);
   });
 
   it("filters the holder list by address fragment", () => {
     const rows = makeRows(10);
     const target = rows[7]!.address;
-    const table = buildTable(
-      rows,
-      [{ id: "rawBalance", desc: true }],
-      [{ id: "address", value: target }],
-      { pageIndex: 0, pageSize: HOLDERS_TABLE_PAGE_SIZE },
-    );
+    const table = buildTable(rows, [{ id: "address", value: target }], {
+      pageIndex: 0,
+      pageSize: HOLDERS_TABLE_PAGE_SIZE,
+    });
 
     expect(table.getRowModel().rows.map((row) => row.original.address)).toEqual([target]);
   });
 
   it("paginates the full data set using the exported page size", () => {
     const rows = makeRows(HOLDERS_TABLE_PAGE_SIZE + 5);
-    const table = buildTable(rows, [{ id: "rawBalance", desc: true }], [], {
+    const table = buildTable(rows, [], {
       pageIndex: 1,
       pageSize: HOLDERS_TABLE_PAGE_SIZE,
     });
