@@ -26,6 +26,17 @@ function snapshotBatch(overrides?: Partial<SnapshotPageBatchResult>): SnapshotPa
   };
 }
 
+function deferredSnapshotBatch() {
+  let resolve!: (value: SnapshotPageBatchResult) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<SnapshotPageBatchResult>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+}
+
 function enterCoinAddress(value = PANS_COIN_TYPE) {
   fireEvent.change(screen.getByLabelText("Coin address"), {
     target: { value },
@@ -185,6 +196,42 @@ describe("SnapshotWorkbench", () => {
     expect(screen.queryByText("Holders")).toBeNull();
     expect(screen.queryByText("Total balance")).toBeNull();
     expect(screen.queryByText("CSV format")).toBeNull();
+  });
+
+  it("renders a loading skeleton that follows the ranked holders card structure", async () => {
+    const deferredBatch = deferredSnapshotBatch();
+    const runSnapshotBatch = vi.fn().mockReturnValue(deferredBatch.promise);
+    render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
+
+    enterCoinAddress();
+    fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
+
+    const loadingCard = await screen.findByRole("status", { name: "Loading ranked holders" });
+    const cardContent = loadingCard.querySelector('[data-slot="card-content"]');
+    const summaryItem = loadingCard.querySelector('[data-slot="item"]');
+    const paginationSkeleton = loadingCard.querySelector(".mt-auto");
+
+    expect(loadingCard.getAttribute("data-slot")).toBe("card");
+    expect(loadingCard.className).toContain("flex-1");
+    expect(loadingCard.className).toContain("overflow-hidden");
+    expect(loadingCard.querySelector('[data-slot="card-header"]')).toBeNull();
+    expect(cardContent?.className).toContain("flex");
+    expect(cardContent?.className).toContain("min-w-0");
+    expect(cardContent?.className).toContain("px-4");
+    expect(summaryItem?.getAttribute("data-variant")).toBe("muted");
+    expect(paginationSkeleton?.className).toContain("mt-auto");
+    expect(paginationSkeleton?.className).toContain("flex-row");
+    expect(paginationSkeleton?.className).toContain("justify-between");
+    expect(loadingCard.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThanOrEqual(
+      18,
+    );
+    expect(screen.queryByText("Snapshot results")).toBeNull();
+    expect(screen.queryByText("Coin type:")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Download CSV" })).toBeNull();
+
+    deferredBatch.resolve(snapshotBatch());
+
+    expect(await screen.findByText("1 holder across 1 page.")).toBeTruthy();
   });
 
   it("renders snapshot results without redundant metadata and keeps the CSV action full-width", async () => {

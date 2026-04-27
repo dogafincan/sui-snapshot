@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { HoldersTable } from "@/components/holders-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Field,
   FieldContent,
@@ -23,6 +23,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Item, ItemContent } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   buildSnapshotResult,
@@ -103,20 +104,53 @@ function downloadSnapshot(snapshot: SnapshotResult) {
 
 function ResultsSkeleton() {
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <Card className="min-w-0 max-w-full flex-1">
-        <CardHeader className="px-4 sm:px-6">
-          <div className="flex flex-col gap-3">
-            <Skeleton className="h-5 w-36" />
-            <Skeleton className="h-4 w-full max-w-md" />
+    <Card
+      className="min-w-0 max-w-full flex-1 overflow-hidden"
+      role="status"
+      aria-label="Loading ranked holders"
+    >
+      <CardContent className="flex min-w-0 flex-1 flex-col px-4 sm:px-6">
+        <div className="flex h-full min-h-[28rem] flex-col gap-4">
+          <Item variant="muted" aria-hidden="true">
+            <ItemContent>
+              <Skeleton className="h-6 w-36 bg-muted-foreground/15" />
+              <Skeleton className="h-6 w-52 max-w-full bg-muted-foreground/15" />
+            </ItemContent>
+          </Item>
+
+          <Skeleton className="h-10 w-full" aria-hidden="true" />
+
+          <div className="min-h-0 min-w-0 max-w-full flex-1" aria-hidden="true">
+            <div className="grid grid-cols-[20%_1fr_25%] items-center gap-4 border-b py-3">
+              <Skeleton className="h-6 w-12" />
+              <Skeleton className="h-6 w-20" />
+              <Skeleton className="ml-auto h-6 w-20" />
+            </div>
+
+            <div className="space-y-5 py-6">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="grid grid-cols-[20%_1fr_25%] items-center gap-4">
+                  <Skeleton className="h-5 w-8" />
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="ml-auto h-5 w-24" />
+                </div>
+              ))}
+            </div>
           </div>
-        </CardHeader>
-        <CardContent className="flex flex-1 flex-col gap-4 px-4 sm:px-6">
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-72 w-full" />
-        </CardContent>
-      </Card>
-    </div>
+
+          <div
+            className="mt-auto flex flex-row items-center justify-between gap-3"
+            aria-hidden="true"
+          >
+            <Skeleton className="h-5 w-20" />
+            <div className="flex shrink-0 items-center gap-2">
+              <Skeleton className="h-9 w-28" />
+              <Skeleton className="h-9 w-20" />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
