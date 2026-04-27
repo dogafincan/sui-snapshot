@@ -52,14 +52,23 @@ describe("SnapshotWorkbench", () => {
 
   it("renders an empty holder table before a snapshot is generated", () => {
     const runSnapshotBatch = vi.fn();
-    render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
+    const { container } = render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
     const rankedHolders = screen.getByText("Ranked holders");
     const tablePagination = screen.getByRole("button", { name: "Previous" }).parentElement
       ?.parentElement;
     const tablePaginationClasses = tablePagination?.className.split(/\s+/) ?? [];
+    const workbenchSection = container.querySelector('[data-slot="snapshot-workbench"]');
     const tableCard = rankedHolders.closest('[data-slot="card"]');
+    const holderSummaryItem = rankedHolders.closest('[data-slot="item"]');
 
     expect(rankedHolders).toBeTruthy();
+    expect(workbenchSection?.className).toContain("bg-muted");
+    expect(workbenchSection?.className).toContain("rounded-[3rem]");
+    expect(workbenchSection?.className).toContain("p-4");
+    expect(workbenchSection?.className).toContain("sm:p-6");
+    expect(holderSummaryItem?.getAttribute("data-variant")).toBe("muted");
+    expect(holderSummaryItem?.className).toContain("bg-muted/50");
+    expect(holderSummaryItem?.className).toContain("rounded-2xl");
     expect(screen.getByText("0 holders across 1 page.")).toBeTruthy();
     expect(screen.getByText("Rank")).toBeTruthy();
     expect(screen.getByText("Address")).toBeTruthy();

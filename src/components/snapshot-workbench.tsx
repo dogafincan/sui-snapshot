@@ -305,7 +305,10 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
         </p>
       </header>
 
-      <section className="grid flex-1 gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
+      <section
+        data-slot="snapshot-workbench"
+        className="grid flex-1 gap-6 rounded-[3rem] bg-muted p-4 sm:p-6 lg:grid-cols-[22rem_minmax(0,1fr)]"
+      >
         <Card className="h-fit lg:sticky lg:top-6">
           <CardContent>
             <form className="flex flex-col gap-6" onSubmit={handleSubmit}>

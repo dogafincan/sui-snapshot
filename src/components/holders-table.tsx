@@ -10,6 +10,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Item, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item";
 import {
   Table,
   TableBody,
@@ -78,12 +79,14 @@ export function HoldersTable({ rows }: { rows: SnapshotRow[] }) {
 
   return (
     <div className="flex h-full min-h-[28rem] flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <p className="font-medium">Ranked holders</p>
-        <p className="text-sm text-muted-foreground">
-          {holderCount} {holderLabel} across {pageCount} {pageLabel}.
-        </p>
-      </div>
+      <Item variant="muted">
+        <ItemContent>
+          <ItemTitle>Ranked holders</ItemTitle>
+          <ItemDescription>
+            {holderCount} {holderLabel} across {pageCount} {pageLabel}.
+          </ItemDescription>
+        </ItemContent>
+      </Item>
 
       <div className="min-h-0 flex-1">
         <Table>
