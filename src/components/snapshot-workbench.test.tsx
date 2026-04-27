@@ -268,7 +268,7 @@ describe("SnapshotWorkbench", () => {
         nextCursor: "cursor-1",
       }),
     );
-    render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
+    const { container } = render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
 
     enterCoinAddress();
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
@@ -277,9 +277,15 @@ describe("SnapshotWorkbench", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel snapshot" }));
 
-    expect(await screen.findByText("Snapshot paused")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Resume snapshot" }).hasAttribute("disabled")).toBe(
-      false,
-    );
+    const pausedTitle = await screen.findByText("Snapshot paused");
+    const pausedAlert = pausedTitle.closest('[role="alert"]');
+    const resumeButton = screen.getByRole("button", { name: "Resume snapshot" });
+
+    expect(pausedTitle).toBeTruthy();
+    expect(resumeButton.hasAttribute("disabled")).toBe(false);
+    expect(container.querySelector('[data-hugeicon="snapshot-paused"]')).not.toBeNull();
+    expect(
+      resumeButton.compareDocumentPosition(pausedAlert as Node) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

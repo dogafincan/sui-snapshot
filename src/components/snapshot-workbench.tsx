@@ -5,6 +5,7 @@ import {
   Camera01Icon,
   Download04Icon,
   Loading03Icon,
+  PauseCircleIcon,
   Refresh01Icon,
   SparklesIcon,
   StopCircleIcon,
@@ -381,16 +382,6 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                   </Alert>
                 ) : null}
 
-                {pausedRun && !isSubmitting ? (
-                  <Alert>
-                    <HugeiconsIcon icon={SparklesIcon} data-hugeicon="snapshot-paused" />
-                    <AlertTitle>Snapshot paused</AlertTitle>
-                    <AlertDescription>
-                      Resume from {formatCoinObjectProgress(pausedRun.objectsFetched)}.
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
-
                 <div className="flex flex-col gap-2">
                   <Button
                     type="submit"
@@ -442,6 +433,16 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                     </Button>
                   ) : null}
                 </div>
+
+                {pausedRun && !isSubmitting ? (
+                  <Alert>
+                    <HugeiconsIcon icon={PauseCircleIcon} data-hugeicon="snapshot-paused" />
+                    <AlertTitle>Snapshot paused</AlertTitle>
+                    <AlertDescription>
+                      Resume from {formatCoinObjectProgress(pausedRun.objectsFetched)}.
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
               </form>
             </CardContent>
           </Card>
