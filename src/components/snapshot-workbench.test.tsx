@@ -168,7 +168,7 @@ describe("SnapshotWorkbench", () => {
     });
   });
 
-  it("marks existing results stale when the coin input changes after a snapshot", async () => {
+  it("keeps existing results without warning when the coin input changes after a snapshot", async () => {
     const runSnapshotBatch = vi.fn().mockResolvedValue(snapshotBatch());
     render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
 
@@ -181,8 +181,10 @@ describe("SnapshotWorkbench", () => {
       target: { value: "0x3::foo::BAR" },
     });
 
-    expect(await screen.findByText("Input changed")).toBeTruthy();
-    expect(screen.getByText("Generate a new snapshot to refresh these results.")).toBeTruthy();
+    expect(screen.getByText("1 holder across 1 page.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Download CSV" })).toBeTruthy();
+    expect(screen.queryByText("Input changed")).toBeNull();
+    expect(screen.queryByText("Generate a new snapshot to refresh these results.")).toBeNull();
   });
 
   it("does not render summary cards after a snapshot", async () => {

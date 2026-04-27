@@ -67,14 +67,6 @@ function formatCoinObjectProgress(value: number) {
   return `${formatInteger(value)} coin object${value === 1 ? "" : "s"} scanned`;
 }
 
-function getNormalizedCoinAddress(value: string) {
-  try {
-    return buildSnapshotInputFromForm({ coinAddress: value }).coinAddress;
-  } catch {
-    return null;
-  }
-}
-
 function wait(ms: number, cancelWaitRef: { current: (() => void) | null }) {
   return new Promise<void>((resolve) => {
     const timeout = setTimeout(() => {
@@ -174,10 +166,6 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
   const [isSubmitting, setIsSubmitting] = useState(false);
   const cancelRequestedRef = useRef(false);
   const cancelWaitRef = useRef<(() => void) | null>(null);
-
-  const normalizedInputCoinAddress = getNormalizedCoinAddress(coinAddress);
-  const hasStaleSnapshot =
-    snapshot !== null && normalizedInputCoinAddress !== snapshot.meta.coinAddress;
 
   async function runSnapshotFromState(initialState: SnapshotRunState) {
     setRequestError(null);
@@ -461,40 +449,28 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
 
         <div className="flex min-h-0 min-w-0 flex-col gap-6 self-stretch">
           {snapshot ? (
-            <>
-              {hasStaleSnapshot ? (
-                <Alert>
-                  <HugeiconsIcon icon={SparklesIcon} data-hugeicon="input-changed" />
-                  <AlertTitle>Input changed</AlertTitle>
-                  <AlertDescription>
-                    Generate a new snapshot to refresh these results.
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-
-              <Card className="min-w-0 max-w-full flex-1 overflow-hidden">
-                <CardContent className="flex min-w-0 flex-1 flex-col px-4 sm:px-6">
-                  <HoldersTable
-                    rows={snapshot.rows}
-                    action={
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        onClick={handleDownload}
-                      >
-                        <HugeiconsIcon
-                          icon={Download04Icon}
-                          data-icon="inline-start"
-                          data-hugeicon="download-csv"
-                        />
-                        Download CSV
-                      </Button>
-                    }
-                  />
-                </CardContent>
-              </Card>
-            </>
+            <Card className="min-w-0 max-w-full flex-1 overflow-hidden">
+              <CardContent className="flex min-w-0 flex-1 flex-col px-4 sm:px-6">
+                <HoldersTable
+                  rows={snapshot.rows}
+                  action={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleDownload}
+                    >
+                      <HugeiconsIcon
+                        icon={Download04Icon}
+                        data-icon="inline-start"
+                        data-hugeicon="download-csv"
+                      />
+                      Download CSV
+                    </Button>
+                  }
+                />
+              </CardContent>
+            </Card>
           ) : isSubmitting ? (
             <ResultsSkeleton />
           ) : (
