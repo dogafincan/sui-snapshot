@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { HoldersTable } from "@/components/holders-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Field,
   FieldContent,
@@ -104,14 +104,14 @@ function downloadSnapshot(snapshot: SnapshotResult) {
 function ResultsSkeleton() {
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <Card className="flex-1">
-        <CardHeader>
+      <Card className="min-w-0 max-w-full flex-1">
+        <CardHeader className="px-4 sm:px-6">
           <div className="flex flex-col gap-3">
             <Skeleton className="h-5 w-36" />
             <Skeleton className="h-4 w-full max-w-md" />
           </div>
         </CardHeader>
-        <CardContent className="flex flex-1 flex-col gap-4">
+        <CardContent className="flex flex-1 flex-col gap-4 px-4 sm:px-6">
           <Skeleton className="h-16 w-full" />
           <Skeleton className="h-72 w-full" />
         </CardContent>
@@ -122,8 +122,8 @@ function ResultsSkeleton() {
 
 function EmptyHolderTable() {
   return (
-    <Card className="flex-1">
-      <CardContent className="flex flex-1 flex-col">
+    <Card className="min-w-0 max-w-full flex-1 overflow-hidden">
+      <CardContent className="flex min-w-0 flex-1 flex-col px-4 sm:px-6">
         <HoldersTable rows={[]} />
       </CardContent>
     </Card>
@@ -304,118 +304,128 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
+    <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-full flex-col gap-6 px-3 py-10 sm:max-w-6xl sm:px-6 lg:px-8">
       <header className="flex flex-col gap-2">
         <h1 className="text-4xl leading-tight font-bold tracking-tight">Sui holders snapshot</h1>
-        <p className="max-w-3xl text-lg font-medium text-muted-foreground">
+        <p className="max-w-full text-lg font-medium text-muted-foreground sm:max-w-3xl">
           Run a live holder snapshot and export the ranked holder list to CSV.
         </p>
       </header>
 
       <section
         data-slot="snapshot-workbench"
-        className="grid flex-1 gap-6 rounded-[3rem] bg-muted p-4 sm:p-6 lg:grid-cols-[22rem_minmax(0,1fr)]"
+        className="grid w-full min-w-0 max-w-full flex-1 grid-cols-[minmax(0,1fr)] items-start gap-6 rounded-[2rem] bg-muted p-3 sm:rounded-[3rem] sm:p-6 lg:grid-cols-[22rem_minmax(0,1fr)]"
       >
-        <Card className="h-fit lg:sticky lg:top-6">
-          <CardContent>
-            <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-              <FieldGroup>
-                <Field className="gap-5">
-                  <FieldContent className="gap-1">
-                    <FieldLabel htmlFor="coin-address" className="text-base font-semibold">
-                      Coin address
-                    </FieldLabel>
-                    <FieldDescription className="text-base leading-normal">
-                      Use the format <code>0xPACKAGE::MODULE::TOKEN</code>.
-                    </FieldDescription>
-                  </FieldContent>
-                  <Input
-                    id="coin-address"
-                    value={coinAddress}
-                    onChange={(event) => handleCoinAddressChange(event.target.value)}
-                    placeholder={COIN_ADDRESS_PLACEHOLDER}
-                    autoComplete="off"
-                  />
-                </Field>
-              </FieldGroup>
-
-              {formError ? (
-                <Alert variant="destructive">
-                  <HugeiconsIcon icon={Alert02Icon} data-hugeicon="validation-alert" />
-                  <AlertTitle>Check coin type</AlertTitle>
-                  <AlertDescription>{formError}</AlertDescription>
-                </Alert>
-              ) : null}
-
-              {requestError ? (
-                <Alert variant="destructive">
-                  <HugeiconsIcon icon={SparklesIcon} data-hugeicon="snapshot-failed" />
-                  <AlertTitle>Snapshot failed</AlertTitle>
-                  <AlertDescription>{requestError}</AlertDescription>
-                </Alert>
-              ) : null}
-
-              {pausedRun && !isSubmitting ? (
-                <Alert>
-                  <HugeiconsIcon icon={SparklesIcon} data-hugeicon="snapshot-paused" />
-                  <AlertTitle>Snapshot paused</AlertTitle>
-                  <AlertDescription>
-                    Resume from {formatCoinObjectProgress(pausedRun.objectsFetched)}.
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-
-              <div className="flex flex-col gap-2">
-                <Button type="submit" size="lg" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <HugeiconsIcon
-                        icon={Loading03Icon}
-                        className="animate-spin"
-                        data-icon="inline-start"
-                        data-hugeicon="snapshot-loading"
-                      />
-                      {snapshotProgress && snapshotProgress.pagesFetched > 0
-                        ? formatCoinObjectProgress(snapshotProgress.objectsFetched)
-                        : "Running snapshot"}
-                    </>
-                  ) : (
-                    <>
-                      <HugeiconsIcon
-                        icon={Camera01Icon}
-                        data-icon="inline-start"
-                        data-hugeicon="generate-snapshot"
-                      />
-                      Generate snapshot
-                    </>
-                  )}
-                </Button>
-
-                {isSubmitting ? (
-                  <Button type="button" variant="outline" onClick={handleCancelSnapshot}>
-                    <HugeiconsIcon
-                      icon={StopCircleIcon}
-                      data-icon="inline-start"
-                      data-hugeicon="cancel-snapshot"
+        <div
+          data-slot="snapshot-controls"
+          className="min-w-0 max-w-full self-start lg:sticky lg:top-6"
+        >
+          <Card className="h-fit min-w-0 max-w-full">
+            <CardContent className="px-4 sm:px-6">
+              <form className="flex w-full max-w-full flex-col gap-3" onSubmit={handleSubmit}>
+                <FieldGroup>
+                  <Field className="gap-5">
+                    <FieldContent className="gap-1">
+                      <FieldLabel htmlFor="coin-address" className="text-base font-semibold">
+                        Coin address
+                      </FieldLabel>
+                      <FieldDescription className="text-base leading-normal">
+                        Use the format <code>0xPACKAGE::MODULE::TOKEN</code>.
+                      </FieldDescription>
+                    </FieldContent>
+                    <Input
+                      id="coin-address"
+                      value={coinAddress}
+                      onChange={(event) => handleCoinAddressChange(event.target.value)}
+                      placeholder={COIN_ADDRESS_PLACEHOLDER}
+                      autoComplete="off"
                     />
-                    Cancel snapshot
-                  </Button>
-                ) : pausedRun ? (
-                  <Button type="button" variant="outline" onClick={handleResumeSnapshot}>
-                    <HugeiconsIcon
-                      icon={Refresh01Icon}
-                      data-icon="inline-start"
-                      data-hugeicon="resume-snapshot"
-                    />
-                    Resume snapshot
-                  </Button>
+                  </Field>
+                </FieldGroup>
+
+                {formError ? (
+                  <Alert variant="destructive">
+                    <HugeiconsIcon icon={Alert02Icon} data-hugeicon="validation-alert" />
+                    <AlertTitle>Check coin type</AlertTitle>
+                    <AlertDescription>{formError}</AlertDescription>
+                  </Alert>
                 ) : null}
-              </div>
-            </form>
-          </CardContent>
-        </Card>
 
-        <div className="flex min-h-0 flex-col gap-6 self-stretch">
+                {requestError ? (
+                  <Alert variant="destructive">
+                    <HugeiconsIcon icon={SparklesIcon} data-hugeicon="snapshot-failed" />
+                    <AlertTitle>Snapshot failed</AlertTitle>
+                    <AlertDescription>{requestError}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {pausedRun && !isSubmitting ? (
+                  <Alert>
+                    <HugeiconsIcon icon={SparklesIcon} data-hugeicon="snapshot-paused" />
+                    <AlertTitle>Snapshot paused</AlertTitle>
+                    <AlertDescription>
+                      Resume from {formatCoinObjectProgress(pausedRun.objectsFetched)}.
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+
+                <div className="flex flex-col gap-2">
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full max-w-full"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <HugeiconsIcon
+                          icon={Loading03Icon}
+                          className="animate-spin"
+                          data-icon="inline-start"
+                          data-hugeicon="snapshot-loading"
+                        />
+                        {snapshotProgress && snapshotProgress.pagesFetched > 0
+                          ? formatCoinObjectProgress(snapshotProgress.objectsFetched)
+                          : "Running snapshot"}
+                      </>
+                    ) : (
+                      <>
+                        <HugeiconsIcon
+                          icon={Camera01Icon}
+                          data-icon="inline-start"
+                          data-hugeicon="generate-snapshot"
+                        />
+                        Generate snapshot
+                      </>
+                    )}
+                  </Button>
+
+                  {isSubmitting ? (
+                    <Button type="button" variant="outline" onClick={handleCancelSnapshot}>
+                      <HugeiconsIcon
+                        icon={StopCircleIcon}
+                        data-icon="inline-start"
+                        data-hugeicon="cancel-snapshot"
+                      />
+                      Cancel snapshot
+                    </Button>
+                  ) : pausedRun ? (
+                    <Button type="button" variant="outline" onClick={handleResumeSnapshot}>
+                      <HugeiconsIcon
+                        icon={Refresh01Icon}
+                        data-icon="inline-start"
+                        data-hugeicon="resume-snapshot"
+                      />
+                      Resume snapshot
+                    </Button>
+                  ) : null}
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex min-h-0 min-w-0 flex-col gap-6 self-stretch">
           {snapshot ? (
             <>
               {hasStaleSnapshot ? (
@@ -428,39 +438,26 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                 </Alert>
               ) : null}
 
-              <Card className="flex-1">
-                <CardHeader>
-                  <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="flex min-w-0 flex-1 flex-col gap-2">
-                      <CardTitle>Snapshot results</CardTitle>
-                      <CardDescription className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline">
-                        <span className="shrink-0 font-medium text-foreground">Coin type:</span>
-                        <code
-                          className="block min-w-0 max-w-full truncate font-mono"
-                          title={snapshot.meta.coinAddress}
-                        >
-                          {snapshot.meta.coinAddress}
-                        </code>
-                      </CardDescription>
-                    </div>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full sm:w-auto lg:shrink-0"
-                      onClick={handleDownload}
-                    >
-                      <HugeiconsIcon
-                        icon={Download04Icon}
-                        data-icon="inline-start"
-                        data-hugeicon="download-csv"
-                      />
-                      Download CSV
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col">
-                  <HoldersTable rows={snapshot.rows} />
+              <Card className="min-w-0 max-w-full flex-1 overflow-hidden">
+                <CardContent className="flex min-w-0 flex-1 flex-col px-4 sm:px-6">
+                  <HoldersTable
+                    rows={snapshot.rows}
+                    action={
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleDownload}
+                      >
+                        <HugeiconsIcon
+                          icon={Download04Icon}
+                          data-icon="inline-start"
+                          data-hugeicon="download-csv"
+                        />
+                        Download CSV
+                      </Button>
+                    }
+                  />
                 </CardContent>
               </Card>
             </>

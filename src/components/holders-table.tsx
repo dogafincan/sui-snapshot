@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   flexRender,
@@ -36,21 +36,51 @@ export function createColumns(): ColumnDef<SnapshotRow>[] {
     {
       accessorKey: "address",
       header: "Address",
-      cell: ({ row }) => <code className="font-mono">{row.original.address}</code>,
+      cell: ({ row }) => (
+        <code className="font-mono" title={row.original.address}>
+          {row.original.address}
+        </code>
+      ),
       enableSorting: false,
     },
     {
       accessorKey: "rawBalance",
       header: "Balance",
       cell: ({ row }) => (
-        <div className="text-right font-medium tabular-nums">{row.original.balance}</div>
+        <div className="text-right font-medium tabular-nums" title={row.original.balance}>
+          {row.original.balance}
+        </div>
       ),
       enableSorting: false,
     },
   ];
 }
 
-export function HoldersTable({ rows }: { rows: SnapshotRow[] }) {
+function getColumnClassName(columnId: string, hasRows: boolean) {
+  if (!hasRows) {
+    if (columnId === "rank") {
+      return "w-1/5";
+    }
+
+    if (columnId === "rawBalance") {
+      return "w-1/4 text-right";
+    }
+
+    return undefined;
+  }
+
+  if (columnId === "rank") {
+    return "w-20";
+  }
+
+  if (columnId === "rawBalance") {
+    return "min-w-40 text-right";
+  }
+
+  return "min-w-[32rem]";
+}
+
+export function HoldersTable({ rows, action }: { rows: SnapshotRow[]; action?: ReactNode }) {
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: HOLDERS_TABLE_PAGE_SIZE,
@@ -74,6 +104,7 @@ export function HoldersTable({ rows }: { rows: SnapshotRow[] }) {
   });
 
   const holderCount = rows.length;
+  const hasRows = holderCount > 0;
   const pageCount = Math.max(table.getPageCount(), 1);
   const holderLabel = holderCount === 1 ? "holder" : "holders";
   const pageLabel = pageCount === 1 ? "page" : "pages";
@@ -89,15 +120,17 @@ export function HoldersTable({ rows }: { rows: SnapshotRow[] }) {
         </ItemContent>
       </Item>
 
-      <div className="min-h-0 flex-1">
-        <Table>
+      {action ? <div className="flex w-full">{action}</div> : null}
+
+      <div className="min-h-0 min-w-0 max-w-full flex-1">
+        <Table className={hasRows ? "w-max min-w-full" : "w-full"}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className={header.column.id === "rawBalance" ? "text-right" : undefined}
+                    className={getColumnClassName(header.column.id, hasRows)}
                   >
                     {header.isPlaceholder
                       ? null
@@ -112,7 +145,10 @@ export function HoldersTable({ rows }: { rows: SnapshotRow[] }) {
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className={getColumnClassName(cell.column.id, hasRows)}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

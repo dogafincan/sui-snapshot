@@ -73,14 +73,21 @@ describe("SnapshotWorkbench", () => {
     const coinAddressDescription = screen.getByText(/Use the format/);
     const coinAddressInput = screen.getByLabelText("Coin address");
     const generateButton = screen.getByRole("button", { name: "Generate snapshot" });
+    const controls = container.querySelector('[data-slot="snapshot-controls"]');
+    const formCard = generateButton.closest('[data-slot="card"]');
     const form = generateButton.closest("form");
     const coinAddressField = coinAddressInput.closest('[data-slot="field"]');
     const coinAddressCopy = coinAddressLabel.closest('[data-slot="field-content"]');
 
     expect(rankedHolders).toBeTruthy();
     expect(workbenchSection?.className).toContain("bg-muted");
-    expect(workbenchSection?.className).toContain("rounded-[3rem]");
-    expect(workbenchSection?.className).toContain("p-4");
+    expect(workbenchSection?.className).toContain("items-start");
+    expect(workbenchSection?.className).not.toContain("overflow-hidden");
+    expect(workbenchSection?.className).toContain("min-w-0");
+    expect(workbenchSection?.className).toContain("grid-cols-[minmax(0,1fr)]");
+    expect(workbenchSection?.className).toContain("rounded-[2rem]");
+    expect(workbenchSection?.className).toContain("sm:rounded-[3rem]");
+    expect(workbenchSection?.className).toContain("p-3");
     expect(workbenchSection?.className).toContain("sm:p-6");
     expect(holderSummaryItem?.getAttribute("data-variant")).toBe("muted");
     expect(holderSummaryItem?.className).toContain("bg-muted/50");
@@ -95,6 +102,10 @@ describe("SnapshotWorkbench", () => {
     expect(coinAddressInput.className).not.toContain("md:text-sm");
     expect(generateButton.className).toContain("text-base");
     expect(generateButton.className).toContain("font-semibold");
+    expect(controls?.className).toContain("self-start");
+    expect(controls?.className).toContain("lg:sticky");
+    expect(controls?.className).toContain("lg:top-6");
+    expect(formCard?.className).not.toContain("lg:sticky");
     expect(form?.className).toContain("gap-3");
     expect(coinAddressField?.className).toContain("gap-5");
     expect(coinAddressCopy?.className).toContain("gap-1");
@@ -117,8 +128,14 @@ describe("SnapshotWorkbench", () => {
     expect(tablePaginationClasses).toContain("justify-between");
     expect(tablePaginationClasses).not.toContain("flex-col");
     expect(tableCard?.className).toContain("flex-1");
+    expect(tableCard?.className).toContain("min-w-0");
     expect(screen.queryByText("Snapshot results")).toBeNull();
     expect(screen.queryByRole("button", { name: "Download CSV" })).toBeNull();
+    expect(screen.getByRole("table").className).toContain("w-full");
+    expect(screen.getByRole("table").className).not.toContain("w-max");
+    expect(
+      screen.getByText("Address").closest('[data-slot="table-head"]')?.className,
+    ).not.toContain("min-w-[32rem]");
   });
 
   it("clears validation errors when the coin input changes", async () => {
@@ -147,7 +164,7 @@ describe("SnapshotWorkbench", () => {
     enterCoinAddress();
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
-    expect(await screen.findByText("Snapshot results")).toBeTruthy();
+    expect(await screen.findByText("1 holder across 1 page.")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Coin address"), {
       target: { value: "0x3::foo::BAR" },
@@ -164,13 +181,13 @@ describe("SnapshotWorkbench", () => {
     enterCoinAddress();
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
-    expect(await screen.findByText("Snapshot results")).toBeTruthy();
+    expect(await screen.findByText("1 holder across 1 page.")).toBeTruthy();
     expect(screen.queryByText("Holders")).toBeNull();
     expect(screen.queryByText("Total balance")).toBeNull();
     expect(screen.queryByText("CSV format")).toBeNull();
   });
 
-  it("renders a compact responsive snapshot results header", async () => {
+  it("renders snapshot results without redundant metadata and keeps the CSV action full-width", async () => {
     const coinAddress = normalizeCoinType(PANS_COIN_TYPE);
     const runSnapshotBatch = vi.fn().mockResolvedValue(snapshotBatch());
     render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
@@ -178,12 +195,22 @@ describe("SnapshotWorkbench", () => {
     enterCoinAddress();
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
-    expect(await screen.findByText("Snapshot results")).toBeTruthy();
-    expect(screen.getByText("1 holder across 1 page.")).toBeTruthy();
+    expect(await screen.findByText("1 holder across 1 page.")).toBeTruthy();
+    expect(screen.queryByText("Snapshot results")).toBeNull();
+    expect(screen.queryByText("Coin type:")).toBeNull();
+    expect(screen.queryByText(coinAddress)).toBeNull();
     expect(screen.queryByText("Holder snapshot")).toBeNull();
-    expect(screen.getByText(coinAddress).className).toContain("truncate");
     expect(screen.getByRole("button", { name: "Download CSV" }).className).toContain("w-full");
-    expect(screen.getByRole("button", { name: "Download CSV" }).className).toContain("sm:w-auto");
+    expect(screen.getByRole("button", { name: "Download CSV" }).className).not.toContain(
+      "sm:w-auto",
+    );
+    expect(screen.getByText(ADDRESS_A).className).not.toContain("truncate");
+    expect(screen.getByText(ADDRESS_A).closest('[data-slot="table-cell"]')?.className).toContain(
+      "min-w-[32rem]",
+    );
+    expect(screen.getByRole("table").className).toContain("w-max");
+    expect(screen.getByRole("table").className).toContain("min-w-full");
+    expect(screen.getByRole("table").className).not.toContain("table-fixed");
   });
 
   it("can pause a multi-batch snapshot and offer to resume", async () => {
