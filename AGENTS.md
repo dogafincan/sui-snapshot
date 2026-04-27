@@ -103,11 +103,14 @@ aligned with `wrangler.jsonc`.
   - input: `coinAddress`
   - output: ranked non-zero rows with `rank`, `address`, and `balance`
 - Keep the holders table visible before a snapshot exists by rendering the table
-  with empty rows. Only show snapshot metadata and CSV download controls after a
-  snapshot has completed.
+  with empty rows. Only show CSV download controls after a snapshot has
+  completed; do not render separate snapshot metadata in the results card. Empty
+  tables should fill their container without horizontal scrolling.
 - Keep the holders table static after rows are returned. Do not add client-side
   sorting or filtering unless explicitly requested; the returned ranked order is
-  the table order.
+  the table order. Preserve full address and balance text in populated table
+  cells; narrow screens should use horizontal table scrolling instead of
+  ellipses once rows exist.
 - Preserve the canonical CSV contract: `rank,address,balance`. Do not add
   airdrop amount columns here; airdrop amounts are chosen exclusively in
   `sui-airdrop`.
@@ -126,6 +129,9 @@ aligned with `wrangler.jsonc`.
   readable base-size card copy, semibold section titles, and a strong page
   header. Prefer minimal layout classes and avoid non-shadcn decorative chrome or
   bespoke visual styling.
+- On large screens, keep the input card and results card top-aligned. The input
+  card should sit inside a sticky wrapper without overflow clipping so it remains
+  visible while the results card grows and the page scrolls.
 - Use Hugeicons for all UI icons. Do not add `lucide-react` or another icon
   package for product UI.
 

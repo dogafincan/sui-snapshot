@@ -173,11 +173,20 @@ vp run cf-typegen
   Avoid non-shadcn decorative chrome or bespoke visual treatments.
 - Use Hugeicons for all UI icons. Do not add `lucide-react` or another icon
   package for product UI.
+- On large screens, keep the input card and results card top-aligned. The input
+  card should sit inside a sticky wrapper without overflow clipping so it remains
+  visible while the taller results card scrolls.
 - The holders table is intentionally visible before a snapshot exists. Keep that
   initial state empty, without snapshot metadata, CSV controls, summary cards, or
-  explanatory placeholder cards.
+  explanatory placeholder cards. Empty tables should occupy the available width
+  without horizontal scrolling.
+- Completed snapshots should keep the holders table as the main results surface.
+  Do not add a separate snapshot metadata header; place the full-width CSV action
+  below the ranked holders summary.
 - The holders table intentionally has no client-side sorting or filtering. Keep
-  rows in the returned ranked order.
+  rows in the returned ranked order. Once rows exist, keep full address and
+  balance values available through horizontal table scrolling instead of
+  truncating them.
 - Snapshot accuracy is based on live pagination over Sui GraphQL RPC, so it can
   drift slightly while large holder sets are scanned.
 - Zero-balance coin objects are excluded from holder counts, table rows, and CSV
