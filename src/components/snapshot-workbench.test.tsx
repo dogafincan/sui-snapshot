@@ -92,6 +92,9 @@ describe("SnapshotWorkbench", () => {
 
     expect(rankedHolders).toBeTruthy();
     expect(workbenchSection?.className).toContain("bg-muted");
+    expect(workbenchSection?.className).toContain("border-transparent");
+    expect(workbenchSection?.className).toContain("dark:border-border");
+    expect(workbenchSection?.className).toContain("dark:bg-background");
     expect(workbenchSection?.className).toContain("items-start");
     expect(workbenchSection?.className).not.toContain("overflow-hidden");
     expect(workbenchSection?.className).toContain("min-w-0");
