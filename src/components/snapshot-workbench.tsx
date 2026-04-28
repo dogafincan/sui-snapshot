@@ -364,15 +364,15 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                 <FieldGroup>
                   <Field className="gap-5">
                     <FieldContent className="gap-1">
-                      <FieldLabel htmlFor="coin-address" className="text-base font-semibold">
-                        Coin address
+                      <FieldLabel htmlFor="coin-type" className="text-base font-semibold">
+                        Coin type
                       </FieldLabel>
                       <FieldDescription className="text-base leading-normal">
                         Use the format <code>0xPACKAGE::MODULE::TOKEN</code>.
                       </FieldDescription>
                     </FieldContent>
                     <Input
-                      id="coin-address"
+                      id="coin-type"
                       value={coinAddress}
                       onChange={(event) => handleCoinAddressChange(event.target.value)}
                       placeholder={COIN_ADDRESS_PLACEHOLDER}

@@ -38,7 +38,7 @@ function deferredSnapshotBatch() {
 }
 
 function enterCoinAddress(value = PANS_COIN_TYPE) {
-  fireEvent.change(screen.getByLabelText("Coin address"), {
+  fireEvent.change(screen.getByLabelText("Coin type"), {
     target: { value },
   });
 }
@@ -51,7 +51,7 @@ describe("SnapshotWorkbench", () => {
   it("renders a concise initial form with a descriptive coin type placeholder", () => {
     const runSnapshotBatch = vi.fn();
     const { container } = render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
-    const coinAddressInput = screen.getByLabelText("Coin address") as HTMLInputElement;
+    const coinAddressInput = screen.getByLabelText("Coin type") as HTMLInputElement;
     const appTitle = screen.getByRole("heading", { level: 1, name: "Sui holders snapshot" });
     const appSubtitle = screen.getByText(
       "Generate a ranked holder list for a Sui coin type and export it as CSV.",
@@ -80,9 +80,9 @@ describe("SnapshotWorkbench", () => {
     const tableCard = rankedHolders.closest('[data-slot="card"]');
     const holderSummaryItem = rankedHolders.closest('[data-slot="item"]');
     const holderSummaryDescription = screen.getByText("0 holders across 1 page.");
-    const coinAddressLabel = screen.getByText("Coin address");
+    const coinAddressLabel = screen.getByText("Coin type");
     const coinAddressDescription = screen.getByText(/Use the format/);
-    const coinAddressInput = screen.getByLabelText("Coin address");
+    const coinAddressInput = screen.getByLabelText("Coin type");
     const generateButton = screen.getByRole("button", { name: "Generate snapshot" });
     const controls = container.querySelector('[data-slot="snapshot-controls"]');
     const formCard = generateButton.closest('[data-slot="card"]');
@@ -160,7 +160,7 @@ describe("SnapshotWorkbench", () => {
     expect(screen.queryByText("Check coin type")).toBeNull();
     expect(container.querySelector('[data-hugeicon="validation-alert"]')).not.toBeNull();
 
-    fireEvent.change(screen.getByLabelText("Coin address"), {
+    fireEvent.change(screen.getByLabelText("Coin type"), {
       target: { value: "0x2::sui::SUI" },
     });
 
@@ -190,7 +190,7 @@ describe("SnapshotWorkbench", () => {
 
     expect(await screen.findByText("1 holder across 1 page.")).toBeTruthy();
 
-    fireEvent.change(screen.getByLabelText("Coin address"), {
+    fireEvent.change(screen.getByLabelText("Coin type"), {
       target: { value: "0x3::foo::BAR" },
     });
 
