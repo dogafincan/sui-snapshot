@@ -1,15 +1,14 @@
 import { startTransition, type FormEvent, useRef, useState } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Alert02Icon,
-  AlertCircleIcon,
-  Camera01Icon,
-  CancelCircleIcon,
-  Download04Icon,
-  Loading02Icon,
-  PauseCircleIcon,
-  Refresh01Icon,
-} from "@hugeicons/core-free-icons";
+  Camera,
+  CircleAlert,
+  CirclePause,
+  CircleX,
+  Download,
+  LoaderCircle,
+  RefreshCw,
+  TriangleAlert,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { HoldersTable } from "@/components/holders-table";
@@ -413,7 +412,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
 
                 {formError ? (
                   <Alert variant="destructive">
-                    <HugeiconsIcon icon={Alert02Icon} data-hugeicon="validation-alert" />
+                    <TriangleAlert data-lucide="validation-alert" />
                     <AlertTitle>{formError.title}</AlertTitle>
                     <AlertDescription>{formError.description}</AlertDescription>
                   </Alert>
@@ -421,7 +420,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
 
                 {requestError ? (
                   <Alert variant="destructive">
-                    <HugeiconsIcon icon={AlertCircleIcon} data-hugeicon="snapshot-failed" />
+                    <CircleAlert data-lucide="snapshot-failed" />
                     <AlertTitle>{requestError.title}</AlertTitle>
                     <AlertDescription>{requestError.description}</AlertDescription>
                   </Alert>
@@ -436,11 +435,10 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                   >
                     {isSubmitting ? (
                       <>
-                        <HugeiconsIcon
-                          icon={Loading02Icon}
+                        <LoaderCircle
                           className="animate-spin"
                           data-icon="inline-start"
-                          data-hugeicon="snapshot-loading"
+                          data-lucide="snapshot-loading"
                         />
                         {snapshotProgress && snapshotProgress.pagesFetched > 0
                           ? formatCoinObjectProgress(snapshotProgress.objectsFetched)
@@ -448,11 +446,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                       </>
                     ) : (
                       <>
-                        <HugeiconsIcon
-                          icon={Camera01Icon}
-                          data-icon="inline-start"
-                          data-hugeicon="generate-snapshot"
-                        />
+                        <Camera data-icon="inline-start" data-lucide="generate-snapshot" />
                         Generate snapshot
                       </>
                     )}
@@ -465,21 +459,20 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                       onClick={handleCancelSnapshot}
                       disabled={isCancelling}
                     >
-                      <HugeiconsIcon
-                        icon={isCancelling ? Loading02Icon : CancelCircleIcon}
-                        className={isCancelling ? "animate-spin" : undefined}
-                        data-icon="inline-start"
-                        data-hugeicon={isCancelling ? "snapshot-cancelling" : "cancel-snapshot"}
-                      />
+                      {isCancelling ? (
+                        <LoaderCircle
+                          className="animate-spin"
+                          data-icon="inline-start"
+                          data-lucide="snapshot-cancelling"
+                        />
+                      ) : (
+                        <CircleX data-icon="inline-start" data-lucide="cancel-snapshot" />
+                      )}
                       {isCancelling ? "Cancelling snapshot" : "Cancel snapshot"}
                     </Button>
                   ) : pausedRun ? (
                     <Button type="button" variant="outline" onClick={handleResumeSnapshot}>
-                      <HugeiconsIcon
-                        icon={Refresh01Icon}
-                        data-icon="inline-start"
-                        data-hugeicon="resume-snapshot"
-                      />
+                      <RefreshCw data-icon="inline-start" data-lucide="resume-snapshot" />
                       Resume snapshot
                     </Button>
                   ) : null}
@@ -487,7 +480,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
 
                 {pausedRun && !isSubmitting ? (
                   <Alert>
-                    <HugeiconsIcon icon={PauseCircleIcon} data-hugeicon="snapshot-paused" />
+                    <CirclePause data-lucide="snapshot-paused" />
                     <AlertTitle>Snapshot paused</AlertTitle>
                     <AlertDescription>
                       Resume from {formatCoinObjectProgress(pausedRun.objectsFetched)}.
@@ -512,11 +505,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                       className="w-full"
                       onClick={handleDownload}
                     >
-                      <HugeiconsIcon
-                        icon={Download04Icon}
-                        data-icon="inline-start"
-                        data-hugeicon="download-csv"
-                      />
+                      <Download data-icon="inline-start" data-lucide="download-csv" />
                       Download CSV
                     </Button>
                   }

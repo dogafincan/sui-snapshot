@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useState } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import {
   flexRender,
   getCoreRowModel,
@@ -8,7 +8,6 @@ import {
   type ColumnDef,
   type PaginationState,
 } from "@tanstack/react-table";
-import { ArrowLeft02Icon, ArrowRight02Icon } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
 import { Item, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item";
@@ -185,11 +184,7 @@ export function HoldersTable({ rows, action }: { rows: SnapshotRow[]; action?: R
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            <HugeiconsIcon
-              icon={ArrowLeft02Icon}
-              data-icon="inline-start"
-              data-hugeicon="previous-page"
-            />
+            <ArrowLeft data-icon="inline-start" data-lucide="previous-page" />
             Previous
           </Button>
           <Button
@@ -200,11 +195,7 @@ export function HoldersTable({ rows, action }: { rows: SnapshotRow[]; action?: R
             disabled={!table.getCanNextPage()}
           >
             Next
-            <HugeiconsIcon
-              icon={ArrowRight02Icon}
-              data-icon="inline-end"
-              data-hugeicon="next-page"
-            />
+            <ArrowRight data-icon="inline-end" data-lucide="next-page" />
           </Button>
         </div>
       </div>

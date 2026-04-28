@@ -43,7 +43,7 @@ Output:
 - preset `b1aIaos55` on `base-luma`
 - Tailwind CSS v4
 - Inter variable font
-- Hugeicons for all UI icons
+- Lucide for all UI icons
 - TanStack Table
 - Vite+
 
@@ -171,8 +171,8 @@ vp run cf-typegen
   section titles, and a strong page header. Prefer stock shadcn components and
   minimal layout classes.
   Avoid non-shadcn decorative chrome or bespoke visual treatments.
-- Use Hugeicons for all UI icons. Do not add `lucide-react` or another icon
-  package for product UI.
+- Use Lucide for all UI icons via `lucide-react`. Do not add Hugeicons or
+  another icon package for product UI.
 - On large screens, keep the input card and results card top-aligned. The input
   card should sit inside a sticky wrapper without overflow clipping so it remains
   visible while the taller results card scrolls.

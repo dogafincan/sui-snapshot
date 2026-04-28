@@ -25,7 +25,7 @@ Core behavior:
 - shadcn preset `b1aIaos55` on `base-luma`
 - Tailwind CSS v4
 - Inter variable font
-- Hugeicons for all UI icons
+- Lucide for all UI icons
 - Cloudflare Workers via `@cloudflare/vite-plugin`
 
 ## Important Files
@@ -132,8 +132,8 @@ aligned with `wrangler.jsonc`.
 - On large screens, keep the input card and results card top-aligned. The input
   card should sit inside a sticky wrapper without overflow clipping so it remains
   visible while the results card grows and the page scrolls.
-- Use Hugeicons for all UI icons. Do not add `lucide-react` or another icon
-  package for product UI.
+- Use Lucide for all UI icons via `lucide-react`. Do not add Hugeicons or
+  another icon package for product UI.
 
 ## Testing Expectations
 

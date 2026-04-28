@@ -17,18 +17,26 @@ function sourceFiles(directory: string): string[] {
 }
 
 describe("icon system", () => {
-  it("keeps product UI icons on Hugeicons", () => {
+  it("keeps product UI icons on Lucide", () => {
     const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
+    const srcFilesWithHugeiconsImports = sourceFiles("src").filter((path) => {
+      const source = readFileSync(path, "utf8");
+      return /from\s+["']@hugeicons\//.test(source);
+    });
     const srcFilesWithLucideImports = sourceFiles("src").filter((path) => {
       const source = readFileSync(path, "utf8");
       return /from\s+["']lucide-react["']/.test(source);
     });
 
-    expect(packageJson.dependencies?.["lucide-react"]).toBeUndefined();
-    expect(packageJson.devDependencies?.["lucide-react"]).toBeUndefined();
-    expect(srcFilesWithLucideImports).toEqual([]);
+    expect(packageJson.dependencies?.["lucide-react"]).toBeDefined();
+    expect(packageJson.dependencies?.["@hugeicons/core-free-icons"]).toBeUndefined();
+    expect(packageJson.dependencies?.["@hugeicons/react"]).toBeUndefined();
+    expect(packageJson.devDependencies?.["@hugeicons/core-free-icons"]).toBeUndefined();
+    expect(packageJson.devDependencies?.["@hugeicons/react"]).toBeUndefined();
+    expect(srcFilesWithHugeiconsImports).toEqual([]);
+    expect(srcFilesWithLucideImports.length).toBeGreaterThan(0);
   });
 });

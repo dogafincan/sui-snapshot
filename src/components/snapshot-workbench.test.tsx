@@ -66,7 +66,7 @@ describe("SnapshotWorkbench", () => {
     expect(screen.queryByText("Snapshot parameters")).toBeNull();
     expect(screen.queryByText("Inputs are normalized before the request is sent.")).toBeNull();
     expect(screen.queryByText("Ready to run")).toBeNull();
-    expect(container.querySelector('[data-hugeicon="generate-snapshot"]')).not.toBeNull();
+    expect(container.querySelector('[data-lucide="generate-snapshot"]')).not.toBeNull();
   });
 
   it("renders an empty holder table before a snapshot is generated", () => {
@@ -158,7 +158,7 @@ describe("SnapshotWorkbench", () => {
     expect(await screen.findByText("Coin type required")).toBeTruthy();
     expect(screen.getByText("Enter a Sui coin type.")).toBeTruthy();
     expect(screen.queryByText("Invalid coin type format")).toBeNull();
-    expect(container.querySelector('[data-hugeicon="validation-alert"]')).not.toBeNull();
+    expect(container.querySelector('[data-lucide="validation-alert"]')).not.toBeNull();
 
     fireEvent.change(screen.getByLabelText("Coin type"), {
       target: { value: "0x2::sui::SUI" },
@@ -196,7 +196,7 @@ describe("SnapshotWorkbench", () => {
     ).toBeTruthy();
     expect(screen.queryByText("Snapshot failed")).toBeNull();
     expect(screen.queryByText("internal error; reference = 35mj9ufrun4toju14itug1kg")).toBeNull();
-    expect(container.querySelector('[data-hugeicon="snapshot-failed"]')).not.toBeNull();
+    expect(container.querySelector('[data-lucide="snapshot-failed"]')).not.toBeNull();
   });
 
   it("keeps existing results without warning when the coin input changes after a snapshot", async () => {
@@ -305,7 +305,7 @@ describe("SnapshotWorkbench", () => {
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
     expect(await screen.findByText("1 coin object scanned")).toBeTruthy();
-    expect(container.querySelector('[data-hugeicon="cancel-snapshot"]')).not.toBeNull();
+    expect(container.querySelector('[data-lucide="cancel-snapshot"]')).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel snapshot" }));
 
@@ -315,7 +315,7 @@ describe("SnapshotWorkbench", () => {
 
     expect(pausedTitle).toBeTruthy();
     expect(resumeButton.hasAttribute("disabled")).toBe(false);
-    expect(container.querySelector('[data-hugeicon="snapshot-paused"]')).not.toBeNull();
+    expect(container.querySelector('[data-lucide="snapshot-paused"]')).not.toBeNull();
     expect(
       resumeButton.compareDocumentPosition(pausedAlert as Node) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
@@ -348,7 +348,7 @@ describe("SnapshotWorkbench", () => {
 
     const cancellingButton = await screen.findByRole("button", { name: "Cancelling snapshot" });
     expect(cancellingButton.hasAttribute("disabled")).toBe(true);
-    expect(container.querySelector('[data-hugeicon="snapshot-cancelling"]')).not.toBeNull();
+    expect(container.querySelector('[data-lucide="snapshot-cancelling"]')).not.toBeNull();
     expect(screen.queryByText("Snapshot paused")).toBeNull();
 
     deferredBatch.resolve(
