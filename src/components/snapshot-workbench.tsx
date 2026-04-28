@@ -7,7 +7,6 @@ import {
   Download,
   LoaderCircle,
   RefreshCw,
-  TriangleAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -412,7 +411,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
 
                 {formError ? (
                   <Alert variant="destructive">
-                    <TriangleAlert data-lucide="validation-alert" />
+                    <CircleAlert data-lucide="validation-alert" />
                     <AlertTitle>{formError.title}</AlertTitle>
                     <AlertDescription>{formError.description}</AlertDescription>
                   </Alert>

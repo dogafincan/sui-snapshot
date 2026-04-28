@@ -158,7 +158,10 @@ describe("SnapshotWorkbench", () => {
     expect(await screen.findByText("Coin type required")).toBeTruthy();
     expect(screen.getByText("Enter a Sui coin type.")).toBeTruthy();
     expect(screen.queryByText("Invalid coin type format")).toBeNull();
-    expect(container.querySelector('[data-lucide="validation-alert"]')).not.toBeNull();
+    const validationAlertIcon = container.querySelector('[data-lucide="validation-alert"]');
+
+    expect(validationAlertIcon?.getAttribute("class")).toContain("lucide-circle-alert");
+    expect(validationAlertIcon?.getAttribute("class")).not.toContain("lucide-triangle-alert");
 
     fireEvent.change(screen.getByLabelText("Coin type"), {
       target: { value: "0x2::sui::SUI" },
@@ -179,6 +182,9 @@ describe("SnapshotWorkbench", () => {
     expect(await screen.findByText("Invalid coin type format")).toBeTruthy();
     expect(screen.getByText("Enter a coin type in 0xPACKAGE::MODULE::TOKEN format.")).toBeTruthy();
     expect(screen.queryByText("Coin type required")).toBeNull();
+    expect(
+      document.querySelector('[data-lucide="validation-alert"]')?.getAttribute("class"),
+    ).toContain("lucide-circle-alert");
   });
 
   it("shows a sanitized snapshot failure when the server returns an internal reference", async () => {
@@ -196,7 +202,9 @@ describe("SnapshotWorkbench", () => {
     ).toBeTruthy();
     expect(screen.queryByText("Snapshot failed")).toBeNull();
     expect(screen.queryByText("internal error; reference = 35mj9ufrun4toju14itug1kg")).toBeNull();
-    expect(container.querySelector('[data-lucide="snapshot-failed"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-lucide="snapshot-failed"]')?.getAttribute("class"),
+    ).toContain("lucide-circle-alert");
   });
 
   it("keeps existing results without warning when the coin input changes after a snapshot", async () => {
