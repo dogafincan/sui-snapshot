@@ -5,7 +5,7 @@ import {
   Camera01Icon,
   CancelCircleIcon,
   Download04Icon,
-  Loading03Icon,
+  Loading02Icon,
   PauseCircleIcon,
   Refresh01Icon,
   SparklesIcon,
@@ -410,7 +410,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                     {isSubmitting ? (
                       <>
                         <HugeiconsIcon
-                          icon={Loading03Icon}
+                          icon={Loading02Icon}
                           className="animate-spin"
                           data-icon="inline-start"
                           data-hugeicon="snapshot-loading"
