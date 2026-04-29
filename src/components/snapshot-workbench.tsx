@@ -58,6 +58,8 @@ interface SnapshotRunState extends SnapshotProgress {
 
 const BATCH_PAUSE_MS = 1_500;
 const COIN_ADDRESS_PLACEHOLDER = "Enter a Sui coin type";
+const HEADER_LOGO_FOR_LIGHT_MODE = "/logo-dark.png";
+const HEADER_LOGO_FOR_DARK_MODE = "/logo-light.png";
 
 interface FormError {
   title: string;
@@ -370,12 +372,34 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-full flex-col gap-6 px-3 py-10 sm:max-w-6xl sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-4xl leading-tight font-bold tracking-tight">Sui holders snapshot</h1>
-        <p className="max-w-full text-lg font-medium text-muted-foreground sm:max-w-3xl">
-          Generate a ranked holder list for a Sui coin type and export it as CSV.
-        </p>
+    <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-full flex-col gap-8 px-3 py-10 sm:max-w-6xl sm:px-6 lg:px-8">
+      <header className="flex flex-col items-center gap-4 text-center md:flex-row md:gap-6 md:text-left">
+        <div
+          data-slot="app-logo"
+          className="relative size-20 shrink-0 overflow-hidden md:size-24"
+          aria-hidden="true"
+        >
+          <img
+            src={HEADER_LOGO_FOR_LIGHT_MODE}
+            alt=""
+            data-slot="app-logo-for-light-mode"
+            className="size-full"
+          />
+          <img
+            src={HEADER_LOGO_FOR_DARK_MODE}
+            alt=""
+            data-slot="app-logo-for-dark-mode"
+            className="size-full"
+          />
+        </div>
+        <div className="flex min-w-0 flex-col gap-2">
+          <h1 className="text-balance text-4xl leading-tight font-bold tracking-tight">
+            Sui holders snapshot
+          </h1>
+          <p className="max-w-full text-balance text-lg font-medium text-muted-foreground sm:max-w-3xl">
+            Generate a ranked holder list for a Sui coin type and export it as CSV.
+          </p>
+        </div>
       </header>
 
       <section

@@ -167,4 +167,30 @@
   code {
     @apply font-mono;
   }
+
+  [data-slot="app-logo-for-light-mode"] {
+    display: block;
+  }
+
+  [data-slot="app-logo-for-dark-mode"] {
+    display: none;
+  }
+
+  .dark [data-slot="app-logo-for-light-mode"] {
+    display: none;
+  }
+
+  .dark [data-slot="app-logo-for-dark-mode"] {
+    display: block;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-slot="app-logo-for-light-mode"] {
+    display: none;
+  }
+
+  [data-slot="app-logo-for-dark-mode"] {
+    display: block;
+  }
 }

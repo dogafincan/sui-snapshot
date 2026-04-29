@@ -56,11 +56,27 @@ describe("SnapshotWorkbench", () => {
     const appSubtitle = screen.getByText(
       "Generate a ranked holder list for a Sui coin type and export it as CSV.",
     );
+    const appHeader = appTitle.closest("header");
+    const appLogo = container.querySelector('[data-slot="app-logo"]');
+    const appLogoForLightMode = appLogo?.querySelector('[data-slot="app-logo-for-light-mode"]');
+    const appLogoForDarkMode = appLogo?.querySelector('[data-slot="app-logo-for-dark-mode"]');
 
+    expect(appHeader?.className).toContain("items-center");
+    expect(appHeader?.className).toContain("text-center");
+    expect(appHeader?.className).toContain("md:flex-row");
+    expect(appHeader?.className).toContain("md:text-left");
+    expect(appLogo?.className).toContain("size-20");
+    expect(appLogo?.className).toContain("md:size-24");
+    expect(appLogoForLightMode?.getAttribute("src")).toBe("/logo-dark.png");
+    expect(appLogoForLightMode?.getAttribute("alt")).toBe("");
+    expect(appLogoForDarkMode?.getAttribute("src")).toBe("/logo-light.png");
+    expect(appLogoForDarkMode?.getAttribute("alt")).toBe("");
     expect(appTitle.className).toContain("text-4xl");
     expect(appTitle.className).toContain("font-bold");
+    expect(appTitle.className).toContain("text-balance");
     expect(appSubtitle.className).toContain("text-lg");
     expect(appSubtitle.className).toContain("font-medium");
+    expect(appSubtitle.className).toContain("text-balance");
     expect(coinAddressInput.value).toBe("");
     expect(coinAddressInput.placeholder).toBe("Enter a Sui coin type");
     expect(screen.queryByText("Snapshot parameters")).toBeNull();
