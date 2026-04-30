@@ -64,9 +64,10 @@ describe("SnapshotWorkbench", () => {
     expect(appHeader?.className).toContain("items-center");
     expect(appHeader?.className).toContain("text-center");
     expect(appHeader?.className).toContain("md:flex-row");
+    expect(appHeader?.className).toContain("md:pl-4");
     expect(appHeader?.className).toContain("md:text-left");
     expect(appLogo?.className).toContain("size-15");
-    expect(appLogo?.className).toContain("md:size-18");
+    expect(appLogo?.className).toContain("md:size-16");
     expect(appLogoForLightMode?.getAttribute("src")).toBe("/logo-dark.png");
     expect(appLogoForLightMode?.getAttribute("alt")).toBe("");
     expect(appLogoForDarkMode?.getAttribute("src")).toBe("/logo-light.png");
