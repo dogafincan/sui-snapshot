@@ -378,6 +378,11 @@ describe("SnapshotWorkbench", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel snapshot" }));
 
     const cancellingButton = await screen.findByRole("button", { name: "Cancelling snapshot" });
+    const generateButton = screen.getByRole("button", { name: "Generate snapshot" });
+
+    expect(generateButton.hasAttribute("disabled")).toBe(true);
+    expect(container.querySelector('[data-lucide="generate-snapshot"]')).not.toBeNull();
+    expect(container.querySelector('[data-lucide="snapshot-loading"]')).toBeNull();
     expect(cancellingButton.hasAttribute("disabled")).toBe(true);
     expect(container.querySelector('[data-lucide="snapshot-cancelling"]')).not.toBeNull();
     expect(screen.queryByText("Snapshot paused")).toBeNull();

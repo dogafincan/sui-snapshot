@@ -371,6 +371,8 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
     toast.success("CSV download started.");
   }
 
+  const isGenerateButtonLoading = isSubmitting && !isCancelling;
+
   return (
     <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-full flex-col gap-8 px-3 py-10 sm:max-w-6xl sm:px-6 lg:px-8">
       <header className="flex flex-col items-center gap-4 text-center md:flex-row md:gap-6 md:pl-4 md:text-left">
@@ -456,7 +458,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                     className="w-full max-w-full"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? (
+                    {isGenerateButtonLoading ? (
                       <>
                         <LoaderCircle
                           className="animate-spin"
