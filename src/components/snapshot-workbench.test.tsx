@@ -57,6 +57,7 @@ describe("SnapshotWorkbench", () => {
       "Generate a ranked holder list for a Sui coin type and export it as CSV.",
     );
     const appHeader = appTitle.closest("header");
+    const appHeaderCopy = appTitle.parentElement;
     const appLogo = container.querySelector('[data-slot="app-logo"]');
     const appLogoForLightMode = appLogo?.querySelector('[data-slot="app-logo-for-light-mode"]');
     const appLogoForDarkMode = appLogo?.querySelector('[data-slot="app-logo-for-dark-mode"]');
@@ -66,6 +67,8 @@ describe("SnapshotWorkbench", () => {
     expect(appHeader?.className).toContain("md:flex-row");
     expect(appHeader?.className).toContain("md:pl-4");
     expect(appHeader?.className).toContain("md:text-left");
+    expect(appHeaderCopy?.className).toContain("gap-2");
+    expect(appHeaderCopy?.className).toContain("md:gap-1.5");
     expect(appLogo?.className).toContain("size-15");
     expect(appLogo?.className).toContain("md:size-16");
     expect(appLogoForLightMode?.getAttribute("src")).toBe("/logo-dark.png");

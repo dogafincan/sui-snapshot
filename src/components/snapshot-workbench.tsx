@@ -392,7 +392,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
             className="size-full"
           />
         </div>
-        <div className="flex min-w-0 flex-col gap-2">
+        <div className="flex min-w-0 flex-col gap-2 md:gap-1.5">
           <h1 className="text-balance text-4xl leading-tight font-bold tracking-tight">
             Sui holders snapshot
           </h1>
