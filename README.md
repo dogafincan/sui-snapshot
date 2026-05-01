@@ -35,6 +35,50 @@ Output:
 - ranked non-zero holder table
 - client-side CSV download with exactly `rank,address,balance`
 
+## Design And UX Direction
+
+This app is also a reference for the kind of small, focused utilities this
+workspace should produce. The UI is intentionally product-like and operational,
+not a marketing page.
+
+Reusable principles:
+
+- Put the actual tool on the first screen. Avoid landing-page framing,
+  explanatory cards, and decorative sections when the user is here to complete a
+  task.
+- Keep the workflow narrow and obvious: enter a coin type, generate the
+  snapshot, optionally cancel or resume a long run, download the CSV, and leave.
+- Make every visible element earn its place. Removed patterns include
+  ready-to-run explainers, snapshot-type pills, summary metric cards, snapshot
+  metadata headers, client-side sorting, and filtering.
+- Use a rounded muted workbench section as the main app surface. It should
+  contain shadcn cards, have enough padding to make the inner cards feel nested,
+  and use an outer radius that visually relates to the card radius and spacing.
+- Use stock shadcn `base-luma` primitives and tokens before inventing custom
+  styling. Prefer neutral surfaces, subtle rings, and a small number of strong
+  action buttons over bespoke decoration.
+- Keep typography readable and confident: Inter, a strong page title, concise
+  medium-weight subtitle, semibold field and section titles, and base-size card
+  descriptions. Avoid tiny or thin text for primary workflows.
+- Design state changes explicitly. Loading skeletons should mirror the final
+  card structure; cancellation should have its own state; paused runs should
+  appear below the resume action; errors should be short, specific, and use a
+  consistent icon.
+- Support all viewport widths at all times. On large screens the controls and
+  results cards are top-aligned, with the controls sticky while results scroll.
+  On narrow screens, preserve card and workbench borders and prevent content
+  from escaping.
+- Keep empty and populated tables visually different where it matters. Empty
+  tables fill their container without horizontal scrolling; populated tables
+  preserve full addresses and balances through horizontal scrolling instead of
+  ellipses.
+- Respect system dark mode without adding a manual mode switch. Light and dark
+  variants should use the same structure and tokens, with only the needed asset
+  or token changes.
+- Use Lucide for all product UI icons. Keep icons semantic and consistent:
+  camera for snapshot generation, loader for active work, circle alert for
+  errors, pause for paused work, refresh for resume, and download for CSV.
+
 ## Stack
 
 - TanStack Start
@@ -53,6 +97,7 @@ Output:
 - `src/routes/__root.tsx`: root document and global app shell
 - `src/components/snapshot-workbench.tsx`: page header, muted rounded workbench section, form, initial empty table, loading states, and results card
 - `src/components/holders-table.tsx`: static ranked holders table configuration, muted holder summary item, and pagination
+- `src/components/icon-system.test.ts`: regression test that keeps product icons on Lucide
 - `src/components/ui/field.tsx`: shadcn field composition used for form layout
 - `src/components/ui/item.tsx`: shadcn item composition used for muted inner content blocks
 - `src/lib/sui-snapshot.server.ts`: Sui GraphQL holder page-batch execution
@@ -160,6 +205,10 @@ vp run cf-typegen
 - The app is stateless and public by design. No D1, KV, R2, or background jobs.
 - The exported CSV contract is intentionally fixed to `rank,address,balance` so
   it can be uploaded directly into the sibling `sui-airdrop` app.
+- The app's UI/UX decisions are intentionally documented here so future apps can
+  reuse the same taste: focused first screen, clear workbench surface, restrained
+  shadcn components, readable typography, explicit async states, responsive
+  tables, system dark mode, and one icon family.
 - Vite+ is the primary toolchain. `vite.config.ts` is the source of truth for
   format, lint, test, and build configuration.
 - Generated files such as `src/routeTree.gen.ts` and `worker-configuration.d.ts`
@@ -183,6 +232,10 @@ vp run cf-typegen
 - Completed snapshots should keep the holders table as the main results surface.
   Do not add a separate snapshot metadata header; place the full-width CSV action
   below the ranked holders summary.
+- Loading, cancelling, paused, and error states are part of the product
+  experience. Keep them visually calm and specific. In particular, when
+  cancellation is pending, only the cancel button should show the cancelling
+  loader; the generate button should remain disabled with its normal label.
 - The holders table intentionally has no client-side sorting or filtering. Keep
   rows in the returned ranked order. Once rows exist, keep full address and
   balance values available through horizontal table scrolling instead of
