@@ -1,4 +1,4 @@
-# Sui Holders Snapshot
+# Sui Snapshot
 
 TanStack Start web app for running Sui holder snapshots on Cloudflare Workers.
 

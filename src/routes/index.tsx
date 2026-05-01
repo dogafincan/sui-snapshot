@@ -7,7 +7,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       {
-        title: "Sui Holders Snapshot",
+        title: "Sui Snapshot",
       },
       {
         name: "description",

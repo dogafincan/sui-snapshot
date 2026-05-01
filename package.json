@@ -1,5 +1,5 @@
 {
-  "name": "sui-holders-snapshot",
+  "name": "sui-snapshot",
   "private": true,
   "type": "module",
   "imports": {

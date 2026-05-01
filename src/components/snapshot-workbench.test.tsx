@@ -52,7 +52,7 @@ describe("SnapshotWorkbench", () => {
     const runSnapshotBatch = vi.fn();
     const { container } = render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
     const coinAddressInput = screen.getByLabelText("Coin type") as HTMLInputElement;
-    const appTitle = screen.getByRole("heading", { level: 1, name: "Sui holders snapshot" });
+    const appTitle = screen.getByRole("heading", { level: 1, name: "Sui snapshot" });
     const appSubtitle = screen.getByText(
       "Generate a ranked holder list for a Sui coin type and export it as CSV.",
     );
