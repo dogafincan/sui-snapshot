@@ -205,6 +205,9 @@ vp run cf-typegen
 - The app is stateless and public by design. No D1, KV, R2, or background jobs.
 - The exported CSV contract is intentionally fixed to `rank,address,balance` so
   it can be uploaded directly into the sibling `sui-airdrop` app.
+- Internally, fetched and batched balances stay as raw base-unit strings.
+  Snapshot assembly aggregates those values with `BigInt` and formats decimal
+  balances only for the final table and CSV output.
 - The app's UI/UX decisions are intentionally documented here so future apps can
   reuse the same taste: focused first screen, clear workbench surface, restrained
   shadcn components, readable typography, explicit async states, responsive

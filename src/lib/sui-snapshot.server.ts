@@ -1,7 +1,5 @@
 import {
-  addDecimalAmounts,
   buildSnapshotResult,
-  formatUnits,
   normalizeSuiAddress,
   type SnapshotBalanceRow,
   type SnapshotInput,
@@ -228,7 +226,6 @@ async function fetchCoinDecimals(endpoint: string, coinAddress: string, signal: 
 
 function readCoinObjectBalance(
   node: NonNullable<NonNullable<ObjectsResponse["objects"]>["nodes"]>[number],
-  decimals: number,
 ) {
   const ownerAddress = node.owner?.address?.address;
   if (!ownerAddress) {
@@ -242,7 +239,7 @@ function readCoinObjectBalance(
 
   return {
     address: normalizeSuiAddress(ownerAddress),
-    balance: formatUnits(BigInt(String(rawBalanceValue)), decimals),
+    rawBalance: BigInt(String(rawBalanceValue)).toString(),
   };
 }
 
@@ -256,7 +253,7 @@ export async function fetchSuiHolderSnapshotBatch(
   try {
     const decimals =
       input.decimals ?? (await fetchCoinDecimals(endpoint, input.coinAddress, controller.signal));
-    const balances = new Map<string, string>();
+    const balances = new Map<string, bigint>();
     let cursor = input.cursor;
     let nextCursor: string | null = input.cursor;
     let pagesFetched = 0;
@@ -282,8 +279,8 @@ export async function fetchSuiHolderSnapshotBatch(
 
       const nodes = connection.nodes ?? [];
       for (const node of nodes) {
-        const { address, balance } = readCoinObjectBalance(node, decimals);
-        balances.set(address, addDecimalAmounts(balances.get(address) ?? "0", balance));
+        const { address, rawBalance } = readCoinObjectBalance(node);
+        balances.set(address, (balances.get(address) ?? 0n) + BigInt(rawBalance));
       }
 
       pagesFetched += 1;
@@ -307,7 +304,10 @@ export async function fetchSuiHolderSnapshotBatch(
         endpoint,
         coinAddress: input.coinAddress,
       },
-      balances: Array.from(balances.entries()).map(([address, balance]) => ({ address, balance })),
+      balances: Array.from(balances.entries()).map(([address, rawBalance]) => ({
+        address,
+        rawBalance: rawBalance.toString(),
+      })),
       cursor: input.cursor,
       nextCursor: reachedLastPage ? null : nextCursor,
       decimals,
@@ -346,6 +346,7 @@ export async function fetchSuiHolderSnapshot(
       return buildSnapshotResult({
         endpoint: batch.meta.endpoint,
         coinAddress: input.coinAddress,
+        decimals: batch.decimals,
         balances,
       });
     }

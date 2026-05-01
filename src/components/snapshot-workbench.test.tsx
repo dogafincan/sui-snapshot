@@ -16,7 +16,7 @@ function snapshotBatch(overrides?: Partial<SnapshotPageBatchResult>): SnapshotPa
       endpoint: "https://graphql.mainnet.sui.io/graphql",
       coinAddress: normalizeCoinType("0x2::sui::SUI"),
     },
-    balances: [{ address: ADDRESS_A, balance: "5" }],
+    balances: [{ address: ADDRESS_A, rawBalance: "5" }],
     cursor: null,
     nextCursor: null,
     decimals: 0,

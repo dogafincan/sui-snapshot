@@ -111,15 +111,15 @@ describe("fetchSuiHolderSnapshotBatch", () => {
       balances: [
         {
           address: ADDRESS_A,
-          balance: "3.25",
+          rawBalance: "325",
         },
         {
           address: ADDRESS_B,
-          balance: "1.25",
+          rawBalance: "125",
         },
         {
           address: ADDRESS_C,
-          balance: "0.5",
+          rawBalance: "50",
         },
       ],
       cursor: null,
@@ -189,7 +189,7 @@ describe("fetchSuiHolderSnapshotBatch", () => {
     });
     expect(batch).toMatchObject({
       decimals: 2,
-      balances: [{ address: ADDRESS_A, balance: "1.25" }],
+      balances: [{ address: ADDRESS_A, rawBalance: "125" }],
     });
   });
 
@@ -277,7 +277,7 @@ describe("fetchSuiHolderSnapshotBatch", () => {
         decimals: null,
       }),
     ).resolves.toMatchObject({
-      balances: [{ address: ADDRESS_A, balance: "2.5" }],
+      balances: [{ address: ADDRESS_A, rawBalance: "250" }],
       decimals: 2,
     });
     expect(fetchMock).toHaveBeenCalledTimes(3);

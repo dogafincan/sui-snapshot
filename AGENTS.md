@@ -158,6 +158,10 @@ aligned with `wrangler.jsonc`.
   `sui-airdrop`.
 - Keep transport values server-to-client JSON-safe. Do not send `BigInt`
   objects across the boundary.
+- Keep fetched and batched holder balances as raw base-unit strings until the
+  final snapshot result is built. Aggregate with `BigInt` internally, serialize
+  raw balances as strings between Worker calls, and format decimal display values
+  only at the final table/CSV result boundary.
 - Prefer putting reusable pure logic in `src/lib/sui-snapshot.ts` so it stays
   easy to unit test.
 - Prefer keeping Cloudflare-specific runtime code in server-only modules.

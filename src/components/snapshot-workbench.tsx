@@ -291,6 +291,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
       const nextSnapshot = buildSnapshotResult({
         endpoint: endpoint ?? "https://graphql.mainnet.sui.io/graphql",
         coinAddress: payload.coinAddress,
+        decimals: decimals ?? 0,
         balances,
       });
 
