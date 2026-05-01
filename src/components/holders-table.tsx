@@ -1,13 +1,5 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import {
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  useReactTable,
-  type ColumnDef,
-  type PaginationState,
-} from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
 import { Item, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item";
@@ -23,39 +15,28 @@ import type { SnapshotRow } from "@/lib/sui-snapshot";
 
 export const HOLDERS_TABLE_PAGE_SIZE = 25;
 
-export function createColumns(): ColumnDef<SnapshotRow>[] {
-  return [
-    {
-      accessorKey: "rank",
-      header: "Rank",
-      cell: ({ row }) => <span className="font-medium tabular-nums">{row.original.rank}</span>,
-      enableSorting: false,
-      size: 64,
-    },
-    {
-      accessorKey: "address",
-      header: "Address",
-      cell: ({ row }) => (
-        <code className="font-mono" title={row.original.address}>
-          {row.original.address}
-        </code>
-      ),
-      enableSorting: false,
-    },
-    {
-      accessorKey: "rawBalance",
-      header: "Balance",
-      cell: ({ row }) => (
-        <div className="text-right font-medium tabular-nums" title={row.original.balance}>
-          {row.original.balance}
-        </div>
-      ),
-      enableSorting: false,
-    },
-  ];
+export const HOLDERS_TABLE_COLUMNS = [
+  { id: "rank", label: "Rank" },
+  { id: "address", label: "Address" },
+  { id: "rawBalance", label: "Balance" },
+] as const;
+
+type HolderColumnId = (typeof HOLDERS_TABLE_COLUMNS)[number]["id"];
+
+export function getHoldersPageCount(rowCount: number, pageSize = HOLDERS_TABLE_PAGE_SIZE) {
+  return Math.max(Math.ceil(rowCount / pageSize), 1);
 }
 
-function getColumnClassName(columnId: string, hasRows: boolean) {
+export function getHoldersPageRows(
+  rows: SnapshotRow[],
+  pageIndex: number,
+  pageSize = HOLDERS_TABLE_PAGE_SIZE,
+) {
+  const start = pageIndex * pageSize;
+  return rows.slice(start, start + pageSize);
+}
+
+function getColumnClassName(columnId: HolderColumnId, hasRows: boolean) {
   if (!hasRows) {
     if (columnId === "rank") {
       return "w-1/5";
@@ -80,31 +61,18 @@ function getColumnClassName(columnId: string, hasRows: boolean) {
 }
 
 export function HoldersTable({ rows, action }: { rows: SnapshotRow[]; action?: ReactNode }) {
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: HOLDERS_TABLE_PAGE_SIZE,
-  });
+  const [pageIndex, setPageIndex] = useState(0);
 
   useEffect(() => {
-    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    setPageIndex(0);
   }, [rows]);
-
-  const table = useReactTable({
-    data: rows,
-    columns: createColumns(),
-    state: {
-      pagination,
-    },
-    enableSorting: false,
-    onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getRowId: (row) => row.address,
-  });
 
   const holderCount = rows.length;
   const hasRows = holderCount > 0;
-  const pageCount = Math.max(table.getPageCount(), 1);
+  const pageCount = getHoldersPageCount(holderCount);
+  const pageRows = getHoldersPageRows(rows, pageIndex);
+  const canPreviousPage = pageIndex > 0;
+  const canNextPage = pageIndex < pageCount - 1;
   const holderLabel = holderCount === 1 ? "holder" : "holders";
   const pageLabel = pageCount === 1 ? "page" : "pages";
 
@@ -124,33 +92,31 @@ export function HoldersTable({ rows, action }: { rows: SnapshotRow[]; action?: R
       <div className="min-h-0 min-w-0 max-w-full flex-1">
         <Table className={hasRows ? "w-max min-w-full" : "w-full"}>
           <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className={getColumnClassName(header.column.id, hasRows)}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
+            <TableRow>
+              {HOLDERS_TABLE_COLUMNS.map((column) => (
+                <TableHead key={column.id} className={getColumnClassName(column.id, hasRows)}>
+                  {column.label}
+                </TableHead>
+              ))}
+            </TableRow>
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={getColumnClassName(cell.column.id, hasRows)}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
+            {pageRows.length > 0 ? (
+              pageRows.map((row) => (
+                <TableRow key={row.address}>
+                  <TableCell className={getColumnClassName("rank", hasRows)}>
+                    <span className="font-medium tabular-nums">{row.rank}</span>
+                  </TableCell>
+                  <TableCell className={getColumnClassName("address", hasRows)}>
+                    <code className="font-mono" title={row.address}>
+                      {row.address}
+                    </code>
+                  </TableCell>
+                  <TableCell className={getColumnClassName("rawBalance", hasRows)}>
+                    <div className="text-right font-medium tabular-nums" title={row.balance}>
+                      {row.balance}
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
@@ -169,20 +135,16 @@ export function HoldersTable({ rows, action }: { rows: SnapshotRow[]; action?: R
 
       <div className="mt-auto flex flex-row items-center justify-between gap-3">
         <p className="shrink-0 text-sm text-muted-foreground">
-          Page{" "}
-          <span className="font-medium text-foreground">
-            {table.getState().pagination.pageIndex + 1}
-          </span>{" "}
-          of{" "}
-          <span className="font-medium text-foreground">{Math.max(table.getPageCount(), 1)}</span>
+          Page <span className="font-medium text-foreground">{pageIndex + 1}</span> of{" "}
+          <span className="font-medium text-foreground">{pageCount}</span>
         </p>
         <div className="flex shrink-0 items-center gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={() => setPageIndex((current) => Math.max(current - 1, 0))}
+            disabled={!canPreviousPage}
           >
             <ArrowLeft data-icon="inline-start" data-lucide="previous-page" />
             Previous
@@ -191,8 +153,8 @@ export function HoldersTable({ rows, action }: { rows: SnapshotRow[]; action?: R
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() => setPageIndex((current) => Math.min(current + 1, pageCount - 1))}
+            disabled={!canNextPage}
           >
             Next
             <ArrowRight data-icon="inline-end" data-lucide="next-page" />

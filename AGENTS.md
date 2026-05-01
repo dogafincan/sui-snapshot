@@ -11,7 +11,7 @@ Core behavior:
 - Query Sui GraphQL RPC for live `Coin<T>` objects for a token type in
   Worker-safe page batches.
 - Aggregate non-zero balances by owner address.
-- Render the result in a TanStack Table UI.
+- Render the result in a static paginated table UI.
 - Export the returned rows as CSV client-side.
 
 ## Stack
@@ -19,7 +19,6 @@ Core behavior:
 - Vite+
 - TanStack Start
 - TanStack Router
-- TanStack Table
 - React 19
 - shadcn/ui on Base UI primitives
 - shadcn preset `b1aIaos55` on `base-luma`
@@ -71,7 +70,7 @@ workspace.
 - `src/routes/index.tsx`: app entry route
 - `src/routes/__root.tsx`: root document and global app shell
 - `src/components/snapshot-workbench.tsx`: page header, muted rounded workbench section, form workflow, initial empty table, loading states, and results card
-- `src/components/holders-table.tsx`: static ranked holders table module with muted holder summary item and pagination
+- `src/components/holders-table.tsx`: static ranked holders table module with local pagination and muted holder summary item
 - `src/components/icon-system.test.ts`: regression guard that keeps product icons on Lucide
 - `src/components/ui/field.tsx`: shadcn field composition for form structure
 - `src/components/ui/item.tsx`: shadcn item composition for muted inner content blocks

@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
-import {
-  createTable,
-  getCoreRowModel,
-  getPaginationRowModel,
-  type PaginationState,
-} from "@tanstack/react-table";
 
-import { HOLDERS_TABLE_PAGE_SIZE, createColumns } from "@/components/holders-table";
+import {
+  HOLDERS_TABLE_COLUMNS,
+  HOLDERS_TABLE_PAGE_SIZE,
+  getHoldersPageCount,
+  getHoldersPageRows,
+} from "@/components/holders-table";
 import type { SnapshotRow } from "@/lib/sui-snapshot";
 
 function makeAddress(index: number) {
@@ -25,54 +24,28 @@ function makeRows(count: number): SnapshotRow[] {
   });
 }
 
-function buildTable(rows: SnapshotRow[], pagination: PaginationState) {
-  return createTable({
-    data: rows,
-    columns: createColumns(),
-    state: {
-      pagination,
-    },
-    enableSorting: false,
-    onStateChange: () => undefined,
-    renderFallbackValue: null,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getRowId: (row) => row.address,
-  });
-}
-
 describe("holders table model", () => {
   it("preserves the returned holder order", () => {
     const rows = makeRows(3).reverse();
-    const table = buildTable(rows, {
-      pageIndex: 0,
-      pageSize: HOLDERS_TABLE_PAGE_SIZE,
-    });
+    const pageRows = getHoldersPageRows(rows, 0);
 
-    expect(table.getRowModel().rows.map((row) => row.original.address)).toEqual(
-      rows.map((row) => row.address),
-    );
+    expect(pageRows.map((row) => row.address)).toEqual(rows.map((row) => row.address));
   });
 
-  it("uses static non-sortable column labels", () => {
-    const columns = createColumns();
-
-    expect(columns.map((column) => column.header)).toEqual(["Rank", "Address", "Balance"]);
-    expect(columns.every((column) => column.enableSorting === false)).toBe(true);
-    expect(columns.some((column) => "filterFn" in column)).toBe(false);
+  it("uses static column labels", () => {
+    expect(HOLDERS_TABLE_COLUMNS.map((column) => column.label)).toEqual([
+      "Rank",
+      "Address",
+      "Balance",
+    ]);
   });
 
   it("paginates the full data set using the exported page size", () => {
     const rows = makeRows(HOLDERS_TABLE_PAGE_SIZE + 5);
-    const table = buildTable(rows, {
-      pageIndex: 1,
-      pageSize: HOLDERS_TABLE_PAGE_SIZE,
-    });
+    const pageRows = getHoldersPageRows(rows, 1);
 
-    expect(table.getRowModel().rows).toHaveLength(5);
-    expect(table.getPageCount()).toBe(2);
-    expect(table.getRowModel().rows[0]?.original.address).toBe(
-      rows[HOLDERS_TABLE_PAGE_SIZE]!.address,
-    );
+    expect(pageRows).toHaveLength(5);
+    expect(getHoldersPageCount(rows.length)).toBe(2);
+    expect(pageRows[0]?.address).toBe(rows[HOLDERS_TABLE_PAGE_SIZE]!.address);
   });
 });

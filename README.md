@@ -7,7 +7,7 @@ The app:
 - scans Sui GraphQL RPC for live `Coin<T>` objects in Worker-safe page batches,
 - aggregates non-zero balances by owner address,
 - keeps an empty holders table visible before the first run,
-- renders the full result set in a TanStack Table UI after a snapshot completes,
+- renders the full result set in a paginated table after a snapshot completes,
 - exports the same rows as CSV without rerunning the snapshot.
 
 ## Toolchain
@@ -88,7 +88,6 @@ Reusable principles:
 - Tailwind CSS v4
 - Inter variable font
 - Lucide for all UI icons
-- TanStack Table
 - Vite+
 
 ## Project Structure
@@ -96,7 +95,7 @@ Reusable principles:
 - `src/routes/index.tsx`: route entrypoint for `/`
 - `src/routes/__root.tsx`: root document and global app shell
 - `src/components/snapshot-workbench.tsx`: page header, muted rounded workbench section, form, initial empty table, loading states, and results card
-- `src/components/holders-table.tsx`: static ranked holders table configuration, muted holder summary item, and pagination
+- `src/components/holders-table.tsx`: static ranked holders table, local pagination, and muted holder summary item
 - `src/components/icon-system.test.ts`: regression test that keeps product icons on Lucide
 - `src/components/ui/field.tsx`: shadcn field composition used for form layout
 - `src/components/ui/item.tsx`: shadcn item composition used for muted inner content blocks
