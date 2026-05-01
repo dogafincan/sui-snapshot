@@ -11,7 +11,9 @@ import {
 const DEFAULT_ENDPOINT = "https://graphql.mainnet.sui.io/graphql";
 const REQUEST_TIMEOUT_MS = 45_000;
 const PAGE_SIZE = 50;
-const PAGES_PER_BATCH = 35;
+const WORKERS_FREE_SUBREQUEST_LIMIT = 50;
+const RETRY_SUBREQUEST_HEADROOM = 10;
+const COIN_METADATA_SUBREQUESTS = 1;
 const TRANSIENT_HTTP_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 const MAX_TRANSIENT_RETRIES = 3;
 const BASE_RETRY_DELAY_MS = 250;
@@ -95,6 +97,19 @@ interface ObjectsResponse {
       } | null;
     }>;
   } | null;
+}
+
+export function getSnapshotBatchPageBudget({
+  hasCarriedDecimals,
+  maxSubrequests = WORKERS_FREE_SUBREQUEST_LIMIT,
+  retryHeadroom = RETRY_SUBREQUEST_HEADROOM,
+}: {
+  hasCarriedDecimals: boolean;
+  maxSubrequests?: number;
+  retryHeadroom?: number;
+}) {
+  const metadataSubrequests = hasCarriedDecimals ? 0 : COIN_METADATA_SUBREQUESTS;
+  return Math.max(1, maxSubrequests - retryHeadroom - metadataSubrequests);
 }
 
 function isTransientHttpStatus(status: number) {
@@ -251,6 +266,8 @@ export async function fetchSuiHolderSnapshotBatch(
   const timeout = globalThis.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
+    const hasCarriedDecimals = input.decimals != null;
+    const pagesPerBatch = getSnapshotBatchPageBudget({ hasCarriedDecimals });
     const decimals =
       input.decimals ?? (await fetchCoinDecimals(endpoint, input.coinAddress, controller.signal));
     const balances = new Map<string, bigint>();
@@ -260,7 +277,7 @@ export async function fetchSuiHolderSnapshotBatch(
     let objectsFetched = 0;
     let reachedLastPage = false;
 
-    while (pagesFetched < PAGES_PER_BATCH) {
+    while (pagesFetched < pagesPerBatch) {
       const snapshotPage = await postGraphQL<ObjectsResponse>(
         endpoint,
         OBJECTS_QUERY,

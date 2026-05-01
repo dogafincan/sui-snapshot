@@ -248,6 +248,8 @@ vp run cf-typegen
 - Zero-balance coin objects are excluded from holder counts, table rows, and CSV
   exports.
 - Large holder sets are fetched across multiple server calls so each Worker
-  invocation stays below the Workers Free subrequest limit, while coin metadata
-  is carried across batches to avoid redundant requests.
+  invocation stays below the Workers Free subrequest limit. The server computes
+  each batch's page budget from an explicit subrequest ceiling, metadata request
+  cost, and retry headroom; coin metadata is carried across batches to avoid
+  redundant requests.
 - The original CLI script has been removed; this repository is now web-app-first.

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { fetchSuiHolderSnapshotBatch } from "@/lib/sui-snapshot.server";
+import { fetchSuiHolderSnapshotBatch, getSnapshotBatchPageBudget } from "@/lib/sui-snapshot.server";
 import { normalizeCoinType } from "@/lib/sui-snapshot";
 
 const ADDRESS_A = `0x${"a".repeat(64)}`;
@@ -70,6 +70,25 @@ describe("fetchSuiHolderSnapshotBatch", () => {
     vi.unstubAllGlobals();
   });
 
+  it("computes the page budget from the subrequest ceiling and retry headroom", () => {
+    expect(getSnapshotBatchPageBudget({ hasCarriedDecimals: false })).toBe(39);
+    expect(getSnapshotBatchPageBudget({ hasCarriedDecimals: true })).toBe(40);
+    expect(
+      getSnapshotBatchPageBudget({
+        hasCarriedDecimals: true,
+        maxSubrequests: 100,
+        retryHeadroom: 12,
+      }),
+    ).toBe(88);
+    expect(
+      getSnapshotBatchPageBudget({
+        hasCarriedDecimals: false,
+        maxSubrequests: 3,
+        retryHeadroom: 10,
+      }),
+    ).toBe(1);
+  });
+
   it("fetches Sui GraphQL coin object pages into balance rows", async () => {
     fetchMock
       .mockResolvedValueOnce(metadataResponse())
@@ -130,10 +149,10 @@ describe("fetchSuiHolderSnapshotBatch", () => {
     });
   });
 
-  it("stops each batch below the Worker free subrequest limit", async () => {
+  it("stops each batch below the Worker free subrequest limit with retry headroom", async () => {
     fetchMock.mockResolvedValueOnce(metadataResponse(0));
 
-    for (let page = 0; page < 35; page += 1) {
+    for (let page = 0; page < 39; page += 1) {
       fetchMock.mockResolvedValueOnce(
         objectsResponse({
           nodes: [{ owner: ADDRESS_A, balance: String(page + 1) }],
@@ -151,17 +170,17 @@ describe("fetchSuiHolderSnapshotBatch", () => {
       decimals: null,
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(36);
+    expect(fetchMock).toHaveBeenCalledTimes(40);
     expect(batch).toMatchObject({
       meta: {
         endpoint: DEFAULT_ENDPOINT,
         coinAddress: normalizeCoinType("0x2::sui::SUI"),
       },
       cursor: "starting-cursor",
-      nextCursor: "cursor-35",
+      nextCursor: "cursor-39",
       decimals: 0,
-      pagesFetched: 35,
-      objectsFetched: 35,
+      pagesFetched: 39,
+      objectsFetched: 39,
     });
   });
 
