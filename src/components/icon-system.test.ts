@@ -22,6 +22,9 @@ describe("icon system", () => {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
+    const componentsJson = JSON.parse(readFileSync("components.json", "utf8")) as {
+      iconLibrary?: string;
+    };
     const srcFilesWithHugeiconsImports = sourceFiles("src").filter((path) => {
       const source = readFileSync(path, "utf8");
       return /from\s+["']@hugeicons\//.test(source);
@@ -32,6 +35,7 @@ describe("icon system", () => {
     });
 
     expect(packageJson.dependencies?.["lucide-react"]).toBeDefined();
+    expect(componentsJson.iconLibrary).toBe("lucide");
     expect(packageJson.dependencies?.["@hugeicons/core-free-icons"]).toBeUndefined();
     expect(packageJson.dependencies?.["@hugeicons/react"]).toBeUndefined();
     expect(packageJson.devDependencies?.["@hugeicons/core-free-icons"]).toBeUndefined();
