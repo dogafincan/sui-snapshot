@@ -18,7 +18,6 @@ export interface SnapshotRow {
   rank: number;
   address: string;
   balance: string;
-  rawBalance: string;
 }
 
 export interface SnapshotResult {
@@ -169,7 +168,6 @@ export function buildSnapshotResult({
       rank: index + 1,
       address: row.address,
       balance: formatUnits(row.rawBalance, decimals),
-      rawBalance: row.rawBalance.toString(),
     })),
   };
 }

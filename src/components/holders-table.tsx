@@ -18,7 +18,7 @@ export const HOLDERS_TABLE_PAGE_SIZE = 25;
 export const HOLDERS_TABLE_COLUMNS = [
   { id: "rank", label: "Rank" },
   { id: "address", label: "Address" },
-  { id: "rawBalance", label: "Balance" },
+  { id: "balance", label: "Balance" },
 ] as const;
 
 type HolderColumnId = (typeof HOLDERS_TABLE_COLUMNS)[number]["id"];
@@ -42,7 +42,7 @@ function getColumnClassName(columnId: HolderColumnId, hasRows: boolean) {
       return "w-1/5";
     }
 
-    if (columnId === "rawBalance") {
+    if (columnId === "balance") {
       return "w-1/4 text-right";
     }
 
@@ -53,7 +53,7 @@ function getColumnClassName(columnId: HolderColumnId, hasRows: boolean) {
     return "w-20";
   }
 
-  if (columnId === "rawBalance") {
+  if (columnId === "balance") {
     return "min-w-40 text-right";
   }
 
@@ -112,7 +112,7 @@ export function HoldersTable({ rows, action }: { rows: SnapshotRow[]; action?: R
                       {row.address}
                     </code>
                   </TableCell>
-                  <TableCell className={getColumnClassName("rawBalance", hasRows)}>
+                  <TableCell className={getColumnClassName("balance", hasRows)}>
                     <div className="text-right font-medium tabular-nums" title={row.balance}>
                       {row.balance}
                     </div>

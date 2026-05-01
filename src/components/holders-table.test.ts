@@ -19,7 +19,6 @@ function makeRows(count: number): SnapshotRow[] {
       rank: index + 1,
       address: makeAddress(descending),
       balance: `${descending}.00`,
-      rawBalance: `${descending}`,
     };
   });
 }

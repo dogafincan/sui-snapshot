@@ -54,7 +54,6 @@ describe("sui snapshot helpers", () => {
           rank: 1,
           address: ADDRESS_A,
           balance: "5",
-          rawBalance: "500",
         },
       ],
     };
@@ -87,13 +86,11 @@ describe("sui snapshot helpers", () => {
           rank: 1,
           address: `0x${"2".padStart(64, "0")}`,
           balance: "2",
-          rawBalance: "200",
         },
         {
           rank: 2,
           address: ADDRESS_A,
           balance: "1.75",
-          rawBalance: "175",
         },
       ],
     });
@@ -118,7 +115,6 @@ describe("sui snapshot helpers", () => {
         rank: 1,
         address: `0x${"3".padStart(64, "0")}`,
         balance: "0.5",
-        rawBalance: "50",
       },
     ]);
   });

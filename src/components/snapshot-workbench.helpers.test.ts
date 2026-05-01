@@ -32,7 +32,6 @@ describe("snapshot workbench helpers", () => {
           rank: 1,
           address: ADDRESS_A,
           balance: "5",
-          rawBalance: "500",
         },
       ],
     };
