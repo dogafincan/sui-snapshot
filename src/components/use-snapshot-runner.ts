@@ -51,7 +51,7 @@ interface UseSnapshotRunnerOptions {
 }
 
 const DEFAULT_ENDPOINT = "https://graphql.mainnet.sui.io/graphql";
-export const DEFAULT_BATCH_PAUSE_MS = 1_500;
+export const DEFAULT_BATCH_PAUSE_MS = 100;
 
 const INTERNAL_SERVER_ERROR_PATTERN = /^internal error;\s*reference\s*=/i;
 
