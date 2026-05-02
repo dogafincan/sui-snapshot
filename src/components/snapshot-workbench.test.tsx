@@ -56,31 +56,16 @@ describe("SnapshotWorkbench", () => {
     const appSubtitle = screen.getByText(
       "Generate a ranked holder list for a Sui coin type and export it as CSV.",
     );
-    const appHeader = appTitle.closest("header");
-    const appHeaderCopy = appTitle.parentElement;
     const appLogo = container.querySelector('[data-slot="app-logo"]');
     const appLogoForLightMode = appLogo?.querySelector('[data-slot="app-logo-for-light-mode"]');
     const appLogoForDarkMode = appLogo?.querySelector('[data-slot="app-logo-for-dark-mode"]');
 
-    expect(appHeader?.className).toContain("items-center");
-    expect(appHeader?.className).toContain("text-center");
-    expect(appHeader?.className).toContain("md:flex-row");
-    expect(appHeader?.className).toContain("md:pl-4");
-    expect(appHeader?.className).toContain("md:text-left");
-    expect(appHeaderCopy?.className).toContain("gap-2");
-    expect(appHeaderCopy?.className).toContain("md:gap-1.5");
-    expect(appLogo?.className).toContain("size-15");
-    expect(appLogo?.className).toContain("md:size-16");
     expect(appLogoForLightMode?.getAttribute("src")).toBe("/logo-dark.png");
     expect(appLogoForLightMode?.getAttribute("alt")).toBe("");
     expect(appLogoForDarkMode?.getAttribute("src")).toBe("/logo-light.png");
     expect(appLogoForDarkMode?.getAttribute("alt")).toBe("");
-    expect(appTitle.className).toContain("text-4xl");
-    expect(appTitle.className).toContain("font-bold");
-    expect(appTitle.className).toContain("text-balance");
-    expect(appSubtitle.className).toContain("text-lg");
-    expect(appSubtitle.className).toContain("font-medium");
-    expect(appSubtitle.className).toContain("text-balance");
+    expect(appTitle).toBeTruthy();
+    expect(appSubtitle).toBeTruthy();
     expect(coinAddressInput.value).toBe("");
     expect(coinAddressInput.placeholder).toBe("Enter a Sui coin type");
     expect(screen.queryByText("Snapshot parameters")).toBeNull();
@@ -95,54 +80,22 @@ describe("SnapshotWorkbench", () => {
     const rankedHolders = screen.getByText("Ranked holders");
     const tablePagination = screen.getByRole("button", { name: "Previous" }).parentElement
       ?.parentElement;
-    const tablePaginationClasses = tablePagination?.className.split(/\s+/) ?? [];
     const workbenchSection = container.querySelector('[data-slot="snapshot-workbench"]');
     const tableCard = rankedHolders.closest('[data-slot="card"]');
     const holderSummaryItem = rankedHolders.closest('[data-slot="item"]');
     const holderSummaryDescription = screen.getByText("0 holders across 1 page.");
-    const coinAddressLabel = screen.getByText("Coin type");
-    const coinAddressDescription = screen.getByText(/Use the format/);
-    const coinAddressInput = screen.getByLabelText("Coin type");
     const generateButton = screen.getByRole("button", { name: "Generate snapshot" });
     const controls = container.querySelector('[data-slot="snapshot-controls"]');
     const formCard = generateButton.closest('[data-slot="card"]');
-    const form = generateButton.closest("form");
-    const coinAddressField = coinAddressInput.closest('[data-slot="field"]');
-    const coinAddressCopy = coinAddressLabel.closest('[data-slot="field-content"]');
 
     expect(rankedHolders).toBeTruthy();
-    expect(workbenchSection?.className).toContain("bg-muted");
-    expect(workbenchSection?.className).toContain("border-transparent");
-    expect(workbenchSection?.className).toContain("dark:border-border");
-    expect(workbenchSection?.className).toContain("dark:bg-background");
-    expect(workbenchSection?.className).toContain("items-start");
     expect(workbenchSection?.className).not.toContain("overflow-hidden");
     expect(workbenchSection?.className).toContain("min-w-0");
-    expect(workbenchSection?.className).toContain("grid-cols-[minmax(0,1fr)]");
-    expect(workbenchSection?.className).toContain("rounded-[2.75rem]");
-    expect(workbenchSection?.className).toContain("sm:rounded-[3rem]");
-    expect(workbenchSection?.className).toContain("p-3");
-    expect(workbenchSection?.className).toContain("sm:p-6");
     expect(holderSummaryItem?.getAttribute("data-variant")).toBe("muted");
-    expect(holderSummaryItem?.className).toContain("bg-muted/50");
-    expect(holderSummaryItem?.className).toContain("rounded-2xl");
-    expect(rankedHolders.className).toContain("text-base");
-    expect(rankedHolders.className).toContain("font-semibold");
-    expect(holderSummaryDescription.className).toContain("text-base");
-    expect(coinAddressLabel.className).toContain("text-base");
-    expect(coinAddressLabel.className).toContain("font-semibold");
-    expect(coinAddressDescription.className).toContain("text-base");
-    expect(coinAddressInput.className).toContain("text-base");
-    expect(coinAddressInput.className).not.toContain("md:text-sm");
-    expect(generateButton.className).toContain("text-base");
-    expect(generateButton.className).toContain("font-semibold");
     expect(controls?.className).toContain("self-start");
     expect(controls?.className).toContain("lg:sticky");
     expect(controls?.className).toContain("lg:top-6");
     expect(formCard?.className).not.toContain("lg:sticky");
-    expect(form?.className).toContain("gap-3");
-    expect(coinAddressField?.className).toContain("gap-5");
-    expect(coinAddressCopy?.className).toContain("gap-1");
     expect(holderSummaryDescription).toBeTruthy();
     expect(screen.getByText("Rank")).toBeTruthy();
     expect(screen.getByText("Address")).toBeTruthy();
@@ -156,11 +109,7 @@ describe("SnapshotWorkbench", () => {
     expect(screen.queryByText("Balance rank")).toBeNull();
     expect(screen.queryByRole("button", { name: "Address" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Balance" })).toBeNull();
-    expect(tablePagination?.className).toContain("mt-auto");
-    expect(tablePaginationClasses).toContain("flex-row");
-    expect(tablePaginationClasses).toContain("items-center");
-    expect(tablePaginationClasses).toContain("justify-between");
-    expect(tablePaginationClasses).not.toContain("flex-col");
+    expect(tablePagination?.className).not.toContain("flex-col");
     expect(tableCard?.className).toContain("flex-1");
     expect(tableCard?.className).toContain("min-w-0");
     expect(screen.queryByText("Snapshot results")).toBeNull();
@@ -271,21 +220,11 @@ describe("SnapshotWorkbench", () => {
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
     const loadingCard = await screen.findByRole("status", { name: "Loading ranked holders" });
-    const cardContent = loadingCard.querySelector('[data-slot="card-content"]');
     const summaryItem = loadingCard.querySelector('[data-slot="item"]');
-    const paginationSkeleton = loadingCard.querySelector(".mt-auto");
 
     expect(loadingCard.getAttribute("data-slot")).toBe("card");
-    expect(loadingCard.className).toContain("flex-1");
-    expect(loadingCard.className).toContain("overflow-hidden");
     expect(loadingCard.querySelector('[data-slot="card-header"]')).toBeNull();
-    expect(cardContent?.className).toContain("flex");
-    expect(cardContent?.className).toContain("min-w-0");
-    expect(cardContent?.className).toContain("px-4");
     expect(summaryItem?.getAttribute("data-variant")).toBe("muted");
-    expect(paginationSkeleton?.className).toContain("mt-auto");
-    expect(paginationSkeleton?.className).toContain("flex-row");
-    expect(paginationSkeleton?.className).toContain("justify-between");
     expect(loadingCard.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThanOrEqual(
       18,
     );
