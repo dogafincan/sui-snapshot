@@ -1,4 +1,4 @@
-import { startTransition, type FormEvent, useRef, useState } from "react";
+import { type FormEvent } from "react";
 import {
   Camera,
   CircleAlert,
@@ -8,7 +8,6 @@ import {
   LoaderCircle,
   RefreshCw,
 } from "lucide-react";
-import { toast } from "sonner";
 
 import { HoldersTable } from "@/components/holders-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -25,116 +24,14 @@ import { Input } from "@/components/ui/input";
 import { Item, ItemContent } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  buildSnapshotResult,
-  COIN_TYPE_REQUIRED_MESSAGE,
-  toErrorMessage,
-  type SnapshotBalanceRow,
-  type SnapshotInput,
-  type SnapshotPageBatchInput,
-  type SnapshotPageBatchResult,
-  type SnapshotResult,
-} from "@/lib/sui-snapshot";
-import {
-  buildSnapshotDownload,
-  buildSnapshotInputFromForm,
-} from "@/components/snapshot-workbench.helpers";
+  formatCoinObjectProgress,
+  type RunSnapshotBatch,
+  useSnapshotRunner,
+} from "@/components/use-snapshot-runner";
 
-type RunSnapshotBatch = (payload: {
-  data: SnapshotPageBatchInput;
-}) => Promise<SnapshotPageBatchResult>;
-
-interface SnapshotProgress {
-  objectsFetched: number;
-  pagesFetched: number;
-}
-
-interface SnapshotRunState extends SnapshotProgress {
-  payload: SnapshotInput;
-  balances: SnapshotBalanceRow[];
-  nextCursor: string | null;
-  decimals: number | null;
-  endpoint: string | null;
-}
-
-const BATCH_PAUSE_MS = 1_500;
 const COIN_ADDRESS_PLACEHOLDER = "Enter a Sui coin type";
 const HEADER_LOGO_FOR_LIGHT_MODE = "/logo-dark.png";
 const HEADER_LOGO_FOR_DARK_MODE = "/logo-light.png";
-
-interface FormError {
-  title: string;
-  description: string;
-}
-
-interface RequestError {
-  title: string;
-  description: string;
-}
-
-const INTERNAL_SERVER_ERROR_PATTERN = /^internal error;\s*reference\s*=/i;
-
-function formatInteger(value: number) {
-  return new Intl.NumberFormat("en-US").format(value);
-}
-
-function formatCoinObjectProgress(value: number) {
-  return `${formatInteger(value)} coin object${value === 1 ? "" : "s"} scanned`;
-}
-
-function getFormError(error: unknown): FormError {
-  const description = toErrorMessage(error);
-
-  return {
-    title:
-      description === COIN_TYPE_REQUIRED_MESSAGE
-        ? "Coin type required"
-        : "Invalid coin type format",
-    description,
-  };
-}
-
-function getRequestError(error: unknown): RequestError {
-  const description = toErrorMessage(error);
-
-  if (INTERNAL_SERVER_ERROR_PATTERN.test(description.trim())) {
-    return {
-      title: "Snapshot could not be generated",
-      description: "The snapshot service returned an internal error. Please try again.",
-    };
-  }
-
-  return {
-    title: "Snapshot could not be generated",
-    description,
-  };
-}
-
-function wait(ms: number, cancelWaitRef: { current: (() => void) | null }) {
-  return new Promise<void>((resolve) => {
-    const timeout = setTimeout(() => {
-      cancelWaitRef.current = null;
-      resolve();
-    }, ms);
-
-    cancelWaitRef.current = () => {
-      clearTimeout(timeout);
-      cancelWaitRef.current = null;
-      resolve();
-    };
-  });
-}
-
-function downloadSnapshot(snapshot: SnapshotResult) {
-  const download = buildSnapshotDownload(snapshot);
-  const blob = new Blob([download.csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-
-  anchor.href = url;
-  anchor.download = download.filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
 
 function ResultsSkeleton() {
   return (
@@ -199,180 +96,28 @@ function EmptyHolderTable() {
 }
 
 export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunSnapshotBatch }) {
-  const [coinAddress, setCoinAddress] = useState("");
-  const [snapshot, setSnapshot] = useState<SnapshotResult | null>(null);
-  const [formError, setFormError] = useState<FormError | null>(null);
-  const [requestError, setRequestError] = useState<RequestError | null>(null);
-  const [snapshotProgress, setSnapshotProgress] = useState<SnapshotProgress | null>(null);
-  const [pausedRun, setPausedRun] = useState<SnapshotRunState | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
-  const cancelRequestedRef = useRef(false);
-  const cancelWaitRef = useRef<(() => void) | null>(null);
-
-  async function runSnapshotFromState(initialState: SnapshotRunState) {
-    setRequestError(null);
-    setPausedRun(null);
-    setIsSubmitting(true);
-    setIsCancelling(false);
-    setSnapshotProgress({
-      objectsFetched: initialState.objectsFetched,
-      pagesFetched: initialState.pagesFetched,
-    });
-    cancelRequestedRef.current = false;
-
-    const payload = initialState.payload;
-
-    try {
-      const balances: SnapshotBalanceRow[] = [...initialState.balances];
-      let nextCursor = initialState.nextCursor;
-      let decimals = initialState.decimals;
-      let pagesFetched = initialState.pagesFetched;
-      let objectsFetched = initialState.objectsFetched;
-      let endpoint = initialState.endpoint;
-
-      while (true) {
-        const batch = await runSnapshotBatch({
-          data: {
-            ...payload,
-            cursor: nextCursor,
-            decimals,
-          },
-        });
-
-        if (!batch) {
-          throw new Error("Snapshot batch failed before returning data.");
-        }
-
-        endpoint = batch.meta.endpoint;
-        decimals = batch.decimals;
-        balances.push(...batch.balances);
-        pagesFetched += batch.pagesFetched;
-        objectsFetched += batch.objectsFetched;
-        nextCursor = batch.nextCursor;
-
-        startTransition(() => {
-          setSnapshotProgress({ objectsFetched, pagesFetched });
-        });
-
-        if (nextCursor === null) {
-          break;
-        }
-
-        if (cancelRequestedRef.current) {
-          setPausedRun({
-            payload,
-            balances,
-            nextCursor,
-            decimals,
-            pagesFetched,
-            objectsFetched,
-            endpoint,
-          });
-          return;
-        }
-
-        await wait(BATCH_PAUSE_MS, cancelWaitRef);
-
-        if (cancelRequestedRef.current) {
-          setPausedRun({
-            payload,
-            balances,
-            nextCursor,
-            decimals,
-            pagesFetched,
-            objectsFetched,
-            endpoint,
-          });
-          return;
-        }
-      }
-
-      const nextSnapshot = buildSnapshotResult({
-        endpoint: endpoint ?? "https://graphql.mainnet.sui.io/graphql",
-        coinAddress: payload.coinAddress,
-        decimals: decimals ?? 0,
-        balances,
-      });
-
-      startTransition(() => {
-        setSnapshot(nextSnapshot);
-      });
-      toast.success(`Loaded ${formatInteger(nextSnapshot.meta.holderCount)} holders.`);
-    } catch (error) {
-      const nextRequestError = getRequestError(error);
-      startTransition(() => {
-        setRequestError(nextRequestError);
-      });
-      toast.error(nextRequestError.description);
-    } finally {
-      cancelRequestedRef.current = false;
-      cancelWaitRef.current = null;
-      setIsSubmitting(false);
-      setIsCancelling(false);
-      setSnapshotProgress(null);
-    }
-  }
+  const runner = useSnapshotRunner({ runSnapshotBatch });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFormError(null);
-    setRequestError(null);
-
-    let payload: SnapshotInput;
-    try {
-      payload = buildSnapshotInputFromForm({
-        coinAddress,
-      });
-    } catch (error) {
-      setFormError(getFormError(error));
-      return;
-    }
-
-    setSnapshot(null);
-    await runSnapshotFromState({
-      payload,
-      balances: [],
-      nextCursor: null,
-      decimals: null,
-      pagesFetched: 0,
-      objectsFetched: 0,
-      endpoint: null,
-    });
+    await runner.submitSnapshot();
   }
 
-  function handleCoinAddressChange(value: string) {
-    setCoinAddress(value);
-    setFormError(null);
-    setRequestError(null);
-    setPausedRun(null);
-  }
-
-  function handleCancelSnapshot() {
-    setIsCancelling(true);
-    cancelRequestedRef.current = true;
-    cancelWaitRef.current?.();
-  }
-
-  async function handleResumeSnapshot() {
-    if (!pausedRun) {
-      return;
-    }
-
-    setSnapshot(null);
-    await runSnapshotFromState(pausedRun);
-  }
-
-  function handleDownload() {
-    if (!snapshot) {
-      return;
-    }
-
-    downloadSnapshot(snapshot);
-    toast.success("CSV download started.");
-  }
-
-  const isGenerateButtonLoading = isSubmitting && !isCancelling;
+  const {
+    coinAddress,
+    snapshot,
+    formError,
+    requestError,
+    snapshotProgress,
+    pausedRun,
+    isSubmitting,
+    isCancelling,
+    isGenerateButtonLoading,
+    changeCoinAddress,
+    cancelSnapshot,
+    resumeSnapshot,
+    downloadSnapshot,
+  } = runner;
 
   return (
     <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-full flex-col gap-8 px-3 py-10 sm:max-w-6xl sm:px-6 lg:px-8">
@@ -429,7 +174,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                     <Input
                       id="coin-type"
                       value={coinAddress}
-                      onChange={(event) => handleCoinAddressChange(event.target.value)}
+                      onChange={(event) => changeCoinAddress(event.target.value)}
                       placeholder={COIN_ADDRESS_PLACEHOLDER}
                       autoComplete="off"
                     />
@@ -482,7 +227,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={handleCancelSnapshot}
+                      onClick={cancelSnapshot}
                       disabled={isCancelling}
                     >
                       {isCancelling ? (
@@ -497,7 +242,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                       {isCancelling ? "Cancelling snapshot" : "Cancel snapshot"}
                     </Button>
                   ) : pausedRun ? (
-                    <Button type="button" variant="outline" onClick={handleResumeSnapshot}>
+                    <Button type="button" variant="outline" onClick={resumeSnapshot}>
                       <RefreshCw data-icon="inline-start" data-lucide="resume-snapshot" />
                       Resume snapshot
                     </Button>
@@ -529,7 +274,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                       type="button"
                       variant="outline"
                       className="w-full"
-                      onClick={handleDownload}
+                      onClick={downloadSnapshot}
                     >
                       <Download data-icon="inline-start" data-lucide="download-csv" />
                       Download CSV

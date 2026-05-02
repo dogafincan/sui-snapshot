@@ -95,6 +95,7 @@ Reusable principles:
 - `src/routes/index.tsx`: route entrypoint for `/`
 - `src/routes/__root.tsx`: root document and global app shell
 - `src/components/snapshot-workbench.tsx`: page header, muted rounded workbench section, form, initial empty table, loading states, and results card
+- `src/components/use-snapshot-runner.ts`: client-side snapshot orchestration hook for validation, batching, cancellation, pause/resume, result assembly, CSV download, and request errors
 - `src/components/holders-table.tsx`: static ranked holders table, local pagination, and muted holder summary item
 - `src/components/icon-system.test.ts`: regression test that keeps product icons on Lucide
 - `src/components/ui/field.tsx`: shadcn field composition used for form layout

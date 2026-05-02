@@ -69,7 +69,8 @@ workspace.
 
 - `src/routes/index.tsx`: app entry route
 - `src/routes/__root.tsx`: root document and global app shell
-- `src/components/snapshot-workbench.tsx`: page header, muted rounded workbench section, form workflow, initial empty table, loading states, and results card
+- `src/components/snapshot-workbench.tsx`: page header, muted rounded workbench section, form, initial empty table, loading states, and results card
+- `src/components/use-snapshot-runner.ts`: client-side snapshot orchestration hook for validation, batching, cancellation, pause/resume, result assembly, CSV download, and request errors
 - `src/components/holders-table.tsx`: static ranked holders table module with local pagination and muted holder summary item
 - `src/components/icon-system.test.ts`: regression guard that keeps product icons on Lucide
 - `src/components/ui/field.tsx`: shadcn field composition for form structure
@@ -193,6 +194,9 @@ aligned with `wrangler.jsonc`.
 - Use direct, specific error copy. Required input, invalid format, and service
   failures should have distinct titles/descriptions. Internal server references
   should not be displayed directly to users.
+- Keep snapshot orchestration in `src/components/use-snapshot-runner.ts`. The
+  workbench component should stay mostly presentational and forward user events
+  to that hook.
 
 ## Testing Expectations
 
