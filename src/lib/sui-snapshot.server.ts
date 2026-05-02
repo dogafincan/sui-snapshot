@@ -256,6 +256,7 @@ async function postGraphQL<TData>(
   }
 
   if (!response.ok) {
+    await cancelResponseBody(response);
     throw new Error(`Sui GraphQL request failed with HTTP ${response.status}.`);
   }
 

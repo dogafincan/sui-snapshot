@@ -53,6 +53,18 @@ function objectsResponse({
   });
 }
 
+function httpErrorResponse(status: number, init?: ResponseInit) {
+  const cancel = vi.fn().mockResolvedValue(undefined);
+  const response = {
+    body: { cancel },
+    headers: new Headers(init?.headers),
+    ok: false,
+    status,
+  } as unknown as Response;
+
+  return { cancel, response };
+}
+
 function readPostBody(callIndex: number) {
   const [, init] = fetchMock.mock.calls[callIndex] ?? [];
   if (typeof init?.body !== "string") {
@@ -278,11 +290,11 @@ describe("fetchSuiHolderSnapshotBatch", () => {
   });
 
   it("retries transient GraphQL HTTP failures before returning the batch", async () => {
+    const transientError = httpErrorResponse(503, { headers: { "retry-after": "0" } });
+
     fetchMock
       .mockResolvedValueOnce(metadataResponse())
-      .mockResolvedValueOnce(
-        new Response("try again", { headers: { "retry-after": "0" }, status: 503 }),
-      )
+      .mockResolvedValueOnce(transientError.response)
       .mockResolvedValueOnce(
         objectsResponse({
           nodes: [{ owner: ADDRESS_A, balance: "250" }],
@@ -303,6 +315,7 @@ describe("fetchSuiHolderSnapshotBatch", () => {
       decimals: 2,
     });
     expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(transientError.cancel).toHaveBeenCalledTimes(1);
   });
 
   it("retries network-level GraphQL request failures before returning the batch", async () => {
@@ -350,5 +363,20 @@ describe("fetchSuiHolderSnapshotBatch", () => {
       }),
     ).rejects.toThrow("Sui GraphQL request failed with HTTP 503.");
     expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("cancels non-OK GraphQL response bodies before throwing HTTP errors", async () => {
+    const { cancel, response } = httpErrorResponse(400);
+    fetchMock.mockResolvedValueOnce(response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      fetchSuiHolderSnapshotBatch({
+        coinAddress: normalizeCoinType("0x2::sui::SUI"),
+        cursor: null,
+        decimals: null,
+      }),
+    ).rejects.toThrow("Sui GraphQL request failed with HTTP 400.");
+    expect(cancel).toHaveBeenCalledTimes(1);
   });
 });
