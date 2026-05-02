@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
+import * as serverModule from "@/lib/sui-snapshot.server";
 import { fetchSuiHolderSnapshotBatch, getSnapshotBatchPageBudget } from "@/lib/sui-snapshot.server";
 import { normalizeCoinType } from "@/lib/sui-snapshot";
 
@@ -81,6 +82,10 @@ describe("fetchSuiHolderSnapshotBatch", () => {
     fetchMock.mockReset();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("does not export a duplicate full-snapshot server runner", () => {
+    expect("fetchSuiHolderSnapshot" in serverModule).toBe(false);
   });
 
   it("computes the page budget from the subrequest ceiling and retry headroom", () => {

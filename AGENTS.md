@@ -75,7 +75,7 @@ workspace.
 - `src/components/icon-system.test.ts`: regression guard that keeps product icons on Lucide
 - `src/components/ui/field.tsx`: shadcn field composition for form structure
 - `src/components/ui/item.tsx`: shadcn item composition for muted inner content blocks
-- `src/lib/sui-snapshot.server.ts`: server-side snapshot execution
+- `src/lib/sui-snapshot.server.ts`: server-side snapshot page-batch execution
 - `src/lib/sui-snapshot.functions.ts`: TanStack Start server function wrapper
 - `src/lib/sui-snapshot.ts`: shared validation, formatting, and CSV helpers
 - `wrangler.jsonc`: Cloudflare Worker config

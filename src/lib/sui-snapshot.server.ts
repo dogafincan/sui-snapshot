@@ -1,11 +1,7 @@
 import {
-  buildSnapshotResult,
   normalizeSuiAddress,
-  type SnapshotBalanceRow,
-  type SnapshotInput,
   type SnapshotPageBatchInput,
   type SnapshotPageBatchResult,
-  type SnapshotResult,
 } from "@/lib/sui-snapshot";
 
 const DEFAULT_ENDPOINT = "https://graphql.mainnet.sui.io/graphql";
@@ -389,35 +385,5 @@ export async function fetchSuiHolderSnapshotBatch(
     throw error;
   } finally {
     clearTimeout(timeout);
-  }
-}
-
-export async function fetchSuiHolderSnapshot(
-  input: SnapshotInput & { decimals?: number | null },
-): Promise<SnapshotResult> {
-  const balances: SnapshotBalanceRow[] = [];
-  let cursor: string | null = null;
-  let decimals = input.decimals ?? null;
-
-  while (true) {
-    const batch = await fetchSuiHolderSnapshotBatch({
-      ...input,
-      cursor,
-      decimals,
-    });
-
-    decimals = batch.decimals;
-    balances.push(...batch.balances);
-
-    if (batch.nextCursor === null) {
-      return buildSnapshotResult({
-        endpoint: batch.meta.endpoint,
-        coinAddress: input.coinAddress,
-        decimals: batch.decimals,
-        balances,
-      });
-    }
-
-    cursor = batch.nextCursor;
   }
 }
