@@ -53,10 +53,11 @@ interface UseSnapshotRunnerOptions {
 const DEFAULT_ENDPOINT = "https://graphql.mainnet.sui.io/graphql";
 export const DEFAULT_BATCH_PAUSE_MS = 100;
 
+const INTEGER_FORMATTER = new Intl.NumberFormat("en-US");
 const INTERNAL_SERVER_ERROR_PATTERN = /^internal error;\s*reference\s*=/i;
 
 export function formatInteger(value: number) {
-  return new Intl.NumberFormat("en-US").format(value);
+  return INTEGER_FORMATTER.format(value);
 }
 
 export function formatCoinObjectProgress(value: number) {
