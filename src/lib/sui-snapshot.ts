@@ -144,18 +144,25 @@ export function buildSnapshotResult({
     aggregatedBalances.set(address, (aggregatedBalances.get(address) ?? 0n) + rawBalance);
   }
 
-  const rows = Array.from(aggregatedBalances.entries())
-    .map(([address, rawBalance]) => ({ address, rawBalance }))
-    .filter((row) => row.rawBalance > 0n)
-    .sort((left, right) => {
-      if (left.rawBalance !== right.rawBalance) {
-        return left.rawBalance > right.rawBalance ? -1 : 1;
-      }
+  const rows: Array<{ address: string; rawBalance: bigint }> = [];
+  let totalRawBalance = 0n;
 
-      return left.address.localeCompare(right.address);
-    });
+  for (const [address, rawBalance] of aggregatedBalances) {
+    if (rawBalance <= 0n) {
+      continue;
+    }
 
-  const totalRawBalance = rows.reduce((total, row) => total + row.rawBalance, 0n);
+    totalRawBalance += rawBalance;
+    rows.push({ address, rawBalance });
+  }
+
+  rows.sort((left, right) => {
+    if (left.rawBalance !== right.rawBalance) {
+      return left.rawBalance > right.rawBalance ? -1 : 1;
+    }
+
+    return left.address.localeCompare(right.address);
+  });
 
   return {
     meta: {
