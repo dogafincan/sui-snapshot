@@ -295,6 +295,26 @@ describe("fetchSuiHolderSnapshotBatch", () => {
     expect(objectRequestInit?.headers).not.toHaveProperty("x-api-key");
   });
 
+  it("sends named GraphQL operations for SDK typed query documents", async () => {
+    fetchMock.mockResolvedValueOnce(metadataResponse()).mockResolvedValueOnce(
+      objectsResponse({
+        nodes: [],
+        hasNextPage: false,
+        endCursor: null,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchSuiHolderSnapshotBatch({
+      coinAddress: normalizeCoinType("0x2::sui::SUI"),
+      cursor: null,
+      decimals: null,
+    });
+
+    expect(readPostBody(0).operationName).toBe("CoinMetadata");
+    expect(readPostBody(1).operationName).toBe("Snapshot");
+  });
+
   it("surfaces malformed GraphQL object payloads", async () => {
     fetchMock
       .mockResolvedValueOnce(metadataResponse())

@@ -1,4 +1,12 @@
 import {
+  SuiGraphQLClient,
+  type GraphQLDocument,
+  type GraphQLQueryOptions,
+  type GraphQLQueryResult,
+} from "@mysten/sui/graphql";
+import { graphql, type ResultOf, type VariablesOf } from "@mysten/sui/graphql/schema";
+
+import {
   normalizeSuiAddress,
   type SnapshotPageBatchInput,
   type SnapshotPageBatchResult,
@@ -15,44 +23,44 @@ const MAX_TRANSIENT_RETRIES = 3;
 const BASE_RETRY_DELAY_MS = 250;
 const RETRY_JITTER_RATIO = 0.5;
 
-const COIN_METADATA_QUERY = `
-query CoinMetadata($coinType: String!) {
-  coinMetadata(coinType: $coinType) {
-    decimals
+const COIN_METADATA_QUERY = graphql(`
+  query CoinMetadata($coinType: String!) {
+    coinMetadata(coinType: $coinType) {
+      decimals
+    }
   }
-}
-`;
+`);
 
-const OBJECTS_QUERY = `
-query Snapshot($type: String!, $first: Int!, $after: String) {
-  objects(first: $first, after: $after, filter: { type: $type }) {
-    pageInfo {
-      hasNextPage
-      endCursor
-    }
-    nodes {
-      owner {
-        __typename
-        ... on AddressOwner {
-          address {
-            address
-          }
-        }
-        ... on ConsensusAddressOwner {
-          address {
-            address
-          }
-        }
+const OBJECTS_QUERY = graphql(`
+  query Snapshot($type: String!, $first: Int!, $after: String) {
+    objects(first: $first, after: $after, filter: { type: $type }) {
+      pageInfo {
+        hasNextPage
+        endCursor
       }
-      asMoveObject {
-        contents {
-          json
+      nodes {
+        owner {
+          __typename
+          ... on AddressOwner {
+            address {
+              address
+            }
+          }
+          ... on ConsensusAddressOwner {
+            address {
+              address
+            }
+          }
+        }
+        asMoveObject {
+          contents {
+            json
+          }
         }
       }
     }
   }
-}
-`;
+`);
 
 interface CloudflareEnv {
   SUI_GRAPHQL_ENDPOINT?: string;
@@ -66,43 +74,9 @@ interface GraphQLRuntimeConfig {
   retryHeadroom: number;
 }
 
-interface GraphQLError {
-  message?: string;
-}
-
-interface GraphQLPayload<TData> {
-  data?: TData | null;
-  errors?: GraphQLError[];
-}
-
-interface CoinMetadataResponse {
-  coinMetadata?: {
-    decimals?: number | null;
-  } | null;
-}
-
-interface ObjectsResponse {
-  objects?: {
-    pageInfo?: {
-      hasNextPage?: boolean | null;
-      endCursor?: string | null;
-    } | null;
-    nodes?: Array<{
-      owner?: {
-        address?: {
-          address?: string | null;
-        } | null;
-      } | null;
-      asMoveObject?: {
-        contents?: {
-          json?: {
-            balance?: string | number | null;
-          } | null;
-        } | null;
-      } | null;
-    }>;
-  } | null;
-}
+type CoinMetadataResponse = ResultOf<typeof COIN_METADATA_QUERY>;
+type ObjectsResponse = ResultOf<typeof OBJECTS_QUERY>;
+type MoveJsonBalance = { balance?: number | string | null };
 
 export function getSnapshotBatchPageBudget({
   hasCarriedDecimals,
@@ -240,59 +214,76 @@ async function resolveGraphQLRuntimeConfig(): Promise<GraphQLRuntimeConfig> {
   };
 }
 
-async function postGraphQL<TData>(
-  endpoint: string,
-  query: string,
-  variables: Record<string, unknown>,
+function createRetryingFetch(): typeof fetch {
+  return async function retryingFetch(input, init) {
+    const signal = init?.signal instanceof AbortSignal ? init.signal : undefined;
+    const retrySignal = signal ?? new AbortController().signal;
+    let response: Response | null = null;
+
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        response = await fetch(input, init);
+      } catch (error) {
+        if (signal?.aborted || isAbortError(error)) {
+          throw error;
+        }
+
+        if (attempt >= MAX_TRANSIENT_RETRIES) {
+          throw buildNetworkRequestError(error);
+        }
+
+        await waitForRetry(readNetworkRetryDelay(attempt), retrySignal);
+        continue;
+      }
+
+      if (
+        response.ok ||
+        !isTransientHttpStatus(response.status) ||
+        attempt >= MAX_TRANSIENT_RETRIES
+      ) {
+        break;
+      }
+
+      await cancelResponseBody(response);
+      await waitForRetry(readRetryDelay(response, attempt), retrySignal);
+    }
+
+    if (!response) {
+      throw new Error("Sui GraphQL request failed before receiving a response.");
+    }
+
+    if (!response.ok) {
+      await cancelResponseBody(response);
+      throw new Error(`Sui GraphQL request failed with HTTP ${response.status}.`);
+    }
+
+    return response;
+  };
+}
+
+function createSuiGraphQLClient(endpoint: string) {
+  return new SuiGraphQLClient({
+    url: endpoint,
+    network: "mainnet",
+    fetch: createRetryingFetch(),
+  });
+}
+
+async function querySuiGraphQL<Result, Variables extends Record<string, unknown>>(
+  client: SuiGraphQLClient,
+  query: GraphQLDocument<Result, Variables>,
+  variables: Variables,
+  operationName: string,
   signal: AbortSignal,
-) {
-  let response: Response | null = null;
+): Promise<NonNullable<GraphQLQueryResult<Result>["data"]>> {
+  const options = {
+    query,
+    variables,
+    operationName,
+    signal,
+  } as unknown as GraphQLQueryOptions<Result, Variables>;
+  const payload = await client.query<Result, Variables>(options);
 
-  for (let attempt = 0; ; attempt += 1) {
-    try {
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ query, variables }),
-        signal,
-      });
-    } catch (error) {
-      if (signal.aborted || isAbortError(error)) {
-        throw error;
-      }
-
-      if (attempt >= MAX_TRANSIENT_RETRIES) {
-        throw buildNetworkRequestError(error);
-      }
-
-      await waitForRetry(readNetworkRetryDelay(attempt), signal);
-      continue;
-    }
-
-    if (
-      response.ok ||
-      !isTransientHttpStatus(response.status) ||
-      attempt >= MAX_TRANSIENT_RETRIES
-    ) {
-      break;
-    }
-
-    await cancelResponseBody(response);
-    await waitForRetry(readRetryDelay(response, attempt), signal);
-  }
-
-  if (!response) {
-    throw new Error("Sui GraphQL request failed before receiving a response.");
-  }
-
-  if (!response.ok) {
-    await cancelResponseBody(response);
-    throw new Error(`Sui GraphQL request failed with HTTP ${response.status}.`);
-  }
-
-  const payload = (await response.json()) as GraphQLPayload<TData>;
   if (payload.errors?.length) {
     const message =
       payload.errors.find((error) => error.message)?.message ??
@@ -307,13 +298,21 @@ async function postGraphQL<TData>(
   return payload.data;
 }
 
-async function fetchCoinDecimals(endpoint: string, coinAddress: string, signal: AbortSignal) {
-  const metadata = await postGraphQL<CoinMetadataResponse>(
-    endpoint,
+async function fetchCoinDecimals(
+  client: SuiGraphQLClient,
+  coinAddress: string,
+  signal: AbortSignal,
+) {
+  const metadata = await querySuiGraphQL<
+    CoinMetadataResponse,
+    VariablesOf<typeof COIN_METADATA_QUERY>
+  >(
+    client,
     COIN_METADATA_QUERY,
     {
       coinType: coinAddress,
     },
+    "CoinMetadata",
     signal,
   );
 
@@ -322,19 +321,20 @@ async function fetchCoinDecimals(endpoint: string, coinAddress: string, signal: 
 }
 
 function fetchObjectsPage(
-  endpoint: string,
+  client: SuiGraphQLClient,
   coinAddress: string,
   cursor: string | null,
   signal: AbortSignal,
 ) {
-  return postGraphQL<ObjectsResponse>(
-    endpoint,
+  return querySuiGraphQL<ObjectsResponse, VariablesOf<typeof OBJECTS_QUERY>>(
+    client,
     OBJECTS_QUERY,
     {
       type: `0x2::coin::Coin<${coinAddress}>`,
       first: PAGE_SIZE,
       after: cursor,
     },
+    "Snapshot",
     signal,
   );
 }
@@ -342,12 +342,13 @@ function fetchObjectsPage(
 function readCoinObjectBalance(
   node: NonNullable<NonNullable<ObjectsResponse["objects"]>["nodes"]>[number],
 ) {
-  const ownerAddress = node.owner?.address?.address;
+  const ownerAddress = node.owner && "address" in node.owner ? node.owner.address?.address : null;
   if (!ownerAddress) {
     throw new Error("Encountered a coin object without an address owner.");
   }
 
-  const rawBalanceValue = node.asMoveObject?.contents?.json?.balance;
+  const rawBalanceValue = (node.asMoveObject?.contents?.json as MoveJsonBalance | undefined)
+    ?.balance;
   if (rawBalanceValue === undefined || rawBalanceValue === null) {
     throw new Error("Encountered a coin object without a balance.");
   }
@@ -366,6 +367,7 @@ export async function fetchSuiHolderSnapshotBatch(
   const timeout = globalThis.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
+    const client = createSuiGraphQLClient(runtime.endpoint);
     const hasCarriedDecimals = input.decimals != null;
     const pagesPerBatch = getSnapshotBatchPageBudget({
       hasCarriedDecimals,
@@ -374,10 +376,10 @@ export async function fetchSuiHolderSnapshotBatch(
     });
     const decimalsPromise = hasCarriedDecimals
       ? Promise.resolve(input.decimals as number)
-      : fetchCoinDecimals(runtime.endpoint, input.coinAddress, controller.signal);
+      : fetchCoinDecimals(client, input.coinAddress, controller.signal);
     const [decimals, firstPage] = await Promise.all([
       decimalsPromise,
-      fetchObjectsPage(runtime.endpoint, input.coinAddress, input.cursor, controller.signal),
+      fetchObjectsPage(client, input.coinAddress, input.cursor, controller.signal),
     ]);
     const balances = new Map<string, bigint>();
     let cursor = input.cursor;
@@ -418,12 +420,7 @@ export async function fetchSuiHolderSnapshotBatch(
         break;
       }
 
-      snapshotPage = await fetchObjectsPage(
-        runtime.endpoint,
-        input.coinAddress,
-        cursor,
-        controller.signal,
-      );
+      snapshotPage = await fetchObjectsPage(client, input.coinAddress, cursor, controller.signal);
     }
 
     return {

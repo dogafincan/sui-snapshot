@@ -88,6 +88,7 @@ Reusable principles:
 - Tailwind CSS v4
 - Inter variable font
 - Lucide for all UI icons
+- `@mysten/sui` typed GraphQL client
 - Vite+
 
 ## Project Structure
@@ -100,7 +101,7 @@ Reusable principles:
 - `src/components/icon-system.test.ts`: regression test that keeps product icons on Lucide
 - `src/components/ui/field.tsx`: shadcn field composition used for form layout
 - `src/components/ui/item.tsx`: shadcn item composition used for muted inner content blocks
-- `src/lib/sui-snapshot.server.ts`: Sui GraphQL holder page-batch execution
+- `src/lib/sui-snapshot.server.ts`: typed Sui GraphQL holder page-batch execution
 - `src/lib/sui-snapshot.functions.ts`: TanStack Start server function wrapper
 - `src/lib/sui-snapshot.ts`: shared validation, formatting, and CSV helpers
 - `wrangler.jsonc`: Cloudflare Worker configuration

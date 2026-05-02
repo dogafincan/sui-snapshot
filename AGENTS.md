@@ -25,6 +25,7 @@ Core behavior:
 - Tailwind CSS v4
 - Inter variable font
 - Lucide for all UI icons
+- `@mysten/sui` typed GraphQL client
 - Cloudflare Workers via `@cloudflare/vite-plugin`
 
 ## Reusable UI/UX Principles
@@ -75,7 +76,7 @@ workspace.
 - `src/components/icon-system.test.ts`: regression guard that keeps product icons on Lucide
 - `src/components/ui/field.tsx`: shadcn field composition for form structure
 - `src/components/ui/item.tsx`: shadcn item composition for muted inner content blocks
-- `src/lib/sui-snapshot.server.ts`: server-side snapshot page-batch execution
+- `src/lib/sui-snapshot.server.ts`: typed Sui GraphQL server-side snapshot page-batch execution
 - `src/lib/sui-snapshot.functions.ts`: TanStack Start server function wrapper
 - `src/lib/sui-snapshot.ts`: shared validation, formatting, and CSV helpers
 - `wrangler.jsonc`: Cloudflare Worker config
