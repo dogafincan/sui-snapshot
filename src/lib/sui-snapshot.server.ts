@@ -17,6 +17,7 @@ const COIN_METADATA_SUBREQUESTS = 1;
 const TRANSIENT_HTTP_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 const MAX_TRANSIENT_RETRIES = 3;
 const BASE_RETRY_DELAY_MS = 250;
+const RETRY_JITTER_RATIO = 0.5;
 
 const COIN_METADATA_QUERY = `
 query CoinMetadata($coinType: String!) {
@@ -116,6 +117,14 @@ function isTransientHttpStatus(status: number) {
   return TRANSIENT_HTTP_STATUS_CODES.has(status);
 }
 
+function addRetryJitter(ms: number) {
+  if (ms <= 0) {
+    return 0;
+  }
+
+  return ms + Math.random() * ms * RETRY_JITTER_RATIO;
+}
+
 function readRetryDelay(response: Response, attempt: number) {
   const retryAfter = response.headers.get("retry-after");
 
@@ -131,7 +140,29 @@ function readRetryDelay(response: Response, attempt: number) {
     }
   }
 
-  return BASE_RETRY_DELAY_MS * 2 ** attempt;
+  return addRetryJitter(BASE_RETRY_DELAY_MS * 2 ** attempt);
+}
+
+function readNetworkRetryDelay(attempt: number) {
+  return addRetryJitter(BASE_RETRY_DELAY_MS * 2 ** attempt);
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+function buildNetworkRequestError(error: unknown) {
+  const requestError = new Error("Sui GraphQL request failed due to a network error.");
+  requestError.cause = error;
+  return requestError;
+}
+
+async function cancelResponseBody(response: Response) {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Best-effort cleanup before retrying transient responses.
+  }
 }
 
 async function waitForRetry(ms: number, signal: AbortSignal) {
@@ -183,17 +214,30 @@ async function postGraphQL<TData>(
   variables: Record<string, unknown>,
   signal: AbortSignal,
 ) {
-  let response: Response;
+  let response: Response | null = null;
 
   for (let attempt = 0; ; attempt += 1) {
-    response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ query, variables }),
-      signal,
-    });
+    try {
+      response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ query, variables }),
+        signal,
+      });
+    } catch (error) {
+      if (signal.aborted || isAbortError(error)) {
+        throw error;
+      }
+
+      if (attempt >= MAX_TRANSIENT_RETRIES) {
+        throw buildNetworkRequestError(error);
+      }
+
+      await waitForRetry(readNetworkRetryDelay(attempt), signal);
+      continue;
+    }
 
     if (
       response.ok ||
@@ -203,7 +247,12 @@ async function postGraphQL<TData>(
       break;
     }
 
+    await cancelResponseBody(response);
     await waitForRetry(readRetryDelay(response, attempt), signal);
+  }
+
+  if (!response) {
+    throw new Error("Sui GraphQL request failed before receiving a response.");
   }
 
   if (!response.ok) {

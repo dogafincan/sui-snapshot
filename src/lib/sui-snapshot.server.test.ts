@@ -67,6 +67,7 @@ const fetchMock = vi.fn<typeof fetch>();
 describe("fetchSuiHolderSnapshotBatch", () => {
   afterEach(() => {
     fetchMock.mockReset();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -276,10 +277,12 @@ describe("fetchSuiHolderSnapshotBatch", () => {
     ).rejects.toThrow("Page size is too large: 100 > 50");
   });
 
-  it("retries transient GraphQL HTTP failures before failing the batch", async () => {
+  it("retries transient GraphQL HTTP failures before returning the batch", async () => {
     fetchMock
       .mockResolvedValueOnce(metadataResponse())
-      .mockResolvedValueOnce(new Response("try again", { status: 503 }))
+      .mockResolvedValueOnce(
+        new Response("try again", { headers: { "retry-after": "0" }, status: 503 }),
+      )
       .mockResolvedValueOnce(
         objectsResponse({
           nodes: [{ owner: ADDRESS_A, balance: "250" }],
@@ -302,11 +305,40 @@ describe("fetchSuiHolderSnapshotBatch", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it("retries network-level GraphQL request failures before returning the batch", async () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+
+    fetchMock
+      .mockResolvedValueOnce(metadataResponse())
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce(
+        objectsResponse({
+          nodes: [{ owner: ADDRESS_A, balance: "250" }],
+          hasNextPage: false,
+          endCursor: null,
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      fetchSuiHolderSnapshotBatch({
+        coinAddress: normalizeCoinType("0x2::sui::SUI"),
+        cursor: null,
+        decimals: null,
+      }),
+    ).resolves.toMatchObject({
+      balances: [{ address: ADDRESS_A, rawBalance: "250" }],
+      decimals: 2,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(randomSpy).toHaveBeenCalled();
+  });
+
   it("throws on upstream non-200 responses", async () => {
     fetchMock
-      .mockResolvedValueOnce(new Response("{}", { status: 503 }))
-      .mockResolvedValueOnce(new Response("{}", { status: 503 }))
-      .mockResolvedValueOnce(new Response("{}", { status: 503 }))
+      .mockResolvedValueOnce(new Response("{}", { headers: { "retry-after": "0" }, status: 503 }))
+      .mockResolvedValueOnce(new Response("{}", { headers: { "retry-after": "0" }, status: 503 }))
+      .mockResolvedValueOnce(new Response("{}", { headers: { "retry-after": "0" }, status: 503 }))
       .mockResolvedValueOnce(new Response("{}", { status: 503 }));
     vi.stubGlobal("fetch", fetchMock);
 
