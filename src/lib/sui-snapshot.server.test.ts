@@ -80,6 +80,8 @@ const fetchMock = vi.fn<typeof fetch>();
 describe("fetchSuiHolderSnapshotBatch", () => {
   afterEach(() => {
     fetchMock.mockReset();
+    delete process.env.SUI_GRAPHQL_MAX_SUBREQUESTS;
+    delete process.env.SUI_GRAPHQL_RETRY_HEADROOM;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -202,6 +204,38 @@ describe("fetchSuiHolderSnapshotBatch", () => {
     });
   });
 
+  it("honors configured subrequest budget overrides", async () => {
+    process.env.SUI_GRAPHQL_MAX_SUBREQUESTS = "5";
+    process.env.SUI_GRAPHQL_RETRY_HEADROOM = "2";
+
+    for (let page = 0; page < 3; page += 1) {
+      fetchMock.mockResolvedValueOnce(
+        objectsResponse({
+          nodes: [{ owner: ADDRESS_A, balance: String(page + 1) }],
+          hasNextPage: true,
+          endCursor: `cursor-${page + 1}`,
+        }),
+      );
+    }
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const batch = await fetchSuiHolderSnapshotBatch({
+      coinAddress: normalizeCoinType("0x2::sui::SUI"),
+      cursor: null,
+      decimals: 0,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(batch).toMatchObject({
+      cursor: null,
+      nextCursor: "cursor-3",
+      decimals: 0,
+      pagesFetched: 3,
+      objectsFetched: 3,
+    });
+  });
+
   it("uses carried decimals without refetching metadata on later batches", async () => {
     fetchMock.mockResolvedValueOnce(
       objectsResponse({
@@ -289,7 +323,7 @@ describe("fetchSuiHolderSnapshotBatch", () => {
       fetchSuiHolderSnapshotBatch({
         coinAddress: normalizeCoinType("0x2::sui::SUI"),
         cursor: null,
-        decimals: null,
+        decimals: 2,
       }),
     ).rejects.toThrow("Page size is too large: 100 > 50");
   });
@@ -364,7 +398,7 @@ describe("fetchSuiHolderSnapshotBatch", () => {
       fetchSuiHolderSnapshotBatch({
         coinAddress: normalizeCoinType("0x2::sui::SUI"),
         cursor: null,
-        decimals: null,
+        decimals: 2,
       }),
     ).rejects.toThrow("Sui GraphQL request failed with HTTP 503.");
     expect(fetchMock).toHaveBeenCalledTimes(4);
@@ -379,7 +413,7 @@ describe("fetchSuiHolderSnapshotBatch", () => {
       fetchSuiHolderSnapshotBatch({
         coinAddress: normalizeCoinType("0x2::sui::SUI"),
         cursor: null,
-        decimals: null,
+        decimals: 2,
       }),
     ).rejects.toThrow("Sui GraphQL request failed with HTTP 400.");
     expect(cancel).toHaveBeenCalledTimes(1);

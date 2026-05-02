@@ -130,6 +130,11 @@ Optional override:
 
 - `SUI_GRAPHQL_ENDPOINT`
 
+Optional batch budget overrides:
+
+- `SUI_GRAPHQL_MAX_SUBREQUESTS`
+- `SUI_GRAPHQL_RETRY_HEADROOM`
+
 If you add more Worker env vars, keep them documented in `README.md` and
 aligned with `wrangler.jsonc`.
 
@@ -235,10 +240,11 @@ If you change Worker bindings or env usage, also run:
 - Zero-balance coin objects are excluded from holder counts, table rows, and CSV
   exports.
 - Large holder sets are fetched across multiple server calls so each Worker
-  invocation stays below the Workers Free subrequest limit. The server batch
-  page budget is computed from an explicit subrequest ceiling, metadata request
-  cost, and retry headroom; do not replace it with a hard-coded page count.
-  Coin metadata is carried across batches to avoid redundant requests.
+  invocation stays below the configured subrequest ceiling. The server batch
+  page budget is computed from `SUI_GRAPHQL_MAX_SUBREQUESTS`, metadata request
+  cost, and `SUI_GRAPHQL_RETRY_HEADROOM`; do not replace it with a hard-coded
+  page count. Coin metadata is carried across batches to avoid redundant
+  requests.
 - Generated files `src/routeTree.gen.ts` and `worker-configuration.d.ts` are
   excluded from Vite+ formatting and linting.
 - This repo does not manage Vite+ commit hooks, editor scaffolding, or agent

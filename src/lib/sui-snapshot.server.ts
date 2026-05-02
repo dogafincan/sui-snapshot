@@ -56,6 +56,14 @@ query Snapshot($type: String!, $first: Int!, $after: String) {
 
 interface CloudflareEnv {
   SUI_GRAPHQL_ENDPOINT?: string;
+  SUI_GRAPHQL_MAX_SUBREQUESTS?: string;
+  SUI_GRAPHQL_RETRY_HEADROOM?: string;
+}
+
+interface GraphQLRuntimeConfig {
+  endpoint: string;
+  maxSubrequests: number;
+  retryHeadroom: number;
 }
 
 interface GraphQLError {
@@ -187,21 +195,49 @@ async function waitForRetry(ms: number, signal: AbortSignal) {
   });
 }
 
-async function resolveEndpoint() {
+function readIntegerConfigValue(value: string | undefined, fallback: number, min: number) {
+  if (!value?.trim()) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= min ? parsed : fallback;
+}
+
+async function resolveCloudflareEnv() {
   try {
     const cloudflare = (await import("cloudflare:workers")) as {
       env?: CloudflareEnv;
     };
 
-    const configured = cloudflare.env?.SUI_GRAPHQL_ENDPOINT?.trim();
-    if (configured) {
-      return configured;
-    }
+    return cloudflare.env;
   } catch {
     // Tests and non-Worker tooling resolve optional endpoint overrides below.
   }
 
-  return process.env.SUI_GRAPHQL_ENDPOINT?.trim() || DEFAULT_ENDPOINT;
+  return undefined;
+}
+
+async function resolveGraphQLRuntimeConfig(): Promise<GraphQLRuntimeConfig> {
+  const cloudflareEnv = await resolveCloudflareEnv();
+  const endpoint =
+    cloudflareEnv?.SUI_GRAPHQL_ENDPOINT?.trim() ||
+    process.env.SUI_GRAPHQL_ENDPOINT?.trim() ||
+    DEFAULT_ENDPOINT;
+
+  return {
+    endpoint,
+    maxSubrequests: readIntegerConfigValue(
+      cloudflareEnv?.SUI_GRAPHQL_MAX_SUBREQUESTS ?? process.env.SUI_GRAPHQL_MAX_SUBREQUESTS,
+      WORKERS_FREE_SUBREQUEST_LIMIT,
+      1,
+    ),
+    retryHeadroom: readIntegerConfigValue(
+      cloudflareEnv?.SUI_GRAPHQL_RETRY_HEADROOM ?? process.env.SUI_GRAPHQL_RETRY_HEADROOM,
+      RETRY_SUBREQUEST_HEADROOM,
+      0,
+    ),
+  };
 }
 
 async function postGraphQL<TData>(
@@ -285,6 +321,24 @@ async function fetchCoinDecimals(endpoint: string, coinAddress: string, signal: 
   return typeof decimals === "number" && Number.isInteger(decimals) && decimals >= 0 ? decimals : 0;
 }
 
+function fetchObjectsPage(
+  endpoint: string,
+  coinAddress: string,
+  cursor: string | null,
+  signal: AbortSignal,
+) {
+  return postGraphQL<ObjectsResponse>(
+    endpoint,
+    OBJECTS_QUERY,
+    {
+      type: `0x2::coin::Coin<${coinAddress}>`,
+      first: PAGE_SIZE,
+      after: cursor,
+    },
+    signal,
+  );
+}
+
 function readCoinObjectBalance(
   node: NonNullable<NonNullable<ObjectsResponse["objects"]>["nodes"]>[number],
 ) {
@@ -307,34 +361,33 @@ function readCoinObjectBalance(
 export async function fetchSuiHolderSnapshotBatch(
   input: SnapshotPageBatchInput,
 ): Promise<SnapshotPageBatchResult> {
-  const endpoint = await resolveEndpoint();
+  const runtime = await resolveGraphQLRuntimeConfig();
   const controller = new AbortController();
   const timeout = globalThis.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
     const hasCarriedDecimals = input.decimals != null;
-    const pagesPerBatch = getSnapshotBatchPageBudget({ hasCarriedDecimals });
-    const decimals =
-      input.decimals ?? (await fetchCoinDecimals(endpoint, input.coinAddress, controller.signal));
+    const pagesPerBatch = getSnapshotBatchPageBudget({
+      hasCarriedDecimals,
+      maxSubrequests: runtime.maxSubrequests,
+      retryHeadroom: runtime.retryHeadroom,
+    });
+    const decimalsPromise = hasCarriedDecimals
+      ? Promise.resolve(input.decimals as number)
+      : fetchCoinDecimals(runtime.endpoint, input.coinAddress, controller.signal);
+    const [decimals, firstPage] = await Promise.all([
+      decimalsPromise,
+      fetchObjectsPage(runtime.endpoint, input.coinAddress, input.cursor, controller.signal),
+    ]);
     const balances = new Map<string, bigint>();
     let cursor = input.cursor;
     let nextCursor: string | null = input.cursor;
     let pagesFetched = 0;
     let objectsFetched = 0;
     let reachedLastPage = false;
+    let snapshotPage = firstPage;
 
-    while (pagesFetched < pagesPerBatch) {
-      const snapshotPage = await postGraphQL<ObjectsResponse>(
-        endpoint,
-        OBJECTS_QUERY,
-        {
-          type: `0x2::coin::Coin<${input.coinAddress}>`,
-          first: PAGE_SIZE,
-          after: cursor,
-        },
-        controller.signal,
-      );
-
+    while (true) {
       const connection = snapshotPage.objects;
       if (!connection) {
         throw new Error("Missing data.objects in GraphQL response.");
@@ -360,11 +413,22 @@ export async function fetchSuiHolderSnapshotBatch(
       }
 
       nextCursor = cursor;
+
+      if (pagesFetched >= pagesPerBatch) {
+        break;
+      }
+
+      snapshotPage = await fetchObjectsPage(
+        runtime.endpoint,
+        input.coinAddress,
+        cursor,
+        controller.signal,
+      );
     }
 
     return {
       meta: {
-        endpoint,
+        endpoint: runtime.endpoint,
         coinAddress: input.coinAddress,
       },
       balances: Array.from(balances.entries()).map(([address, rawBalance]) => ({

@@ -151,6 +151,13 @@ Optional endpoint override:
 SUI_GRAPHQL_ENDPOINT="https://graphql.mainnet.sui.io/graphql"
 ```
 
+Optional batch budget overrides:
+
+```bash
+SUI_GRAPHQL_MAX_SUBREQUESTS="50"
+SUI_GRAPHQL_RETRY_HEADROOM="10"
+```
+
 Keep local overrides in `.dev.vars`. Deployed overrides can be configured as
 Cloudflare Worker environment variables when needed.
 
@@ -248,8 +255,8 @@ vp run cf-typegen
 - Zero-balance coin objects are excluded from holder counts, table rows, and CSV
   exports.
 - Large holder sets are fetched across multiple server calls so each Worker
-  invocation stays below the Workers Free subrequest limit. The server computes
-  each batch's page budget from an explicit subrequest ceiling, metadata request
-  cost, and retry headroom; coin metadata is carried across batches to avoid
-  redundant requests.
+  invocation stays below the configured subrequest ceiling. The server computes
+  each batch's page budget from `SUI_GRAPHQL_MAX_SUBREQUESTS`, metadata request
+  cost, and `SUI_GRAPHQL_RETRY_HEADROOM`; coin metadata is carried across
+  batches to avoid redundant requests.
 - The original CLI script has been removed; this repository is now web-app-first.
