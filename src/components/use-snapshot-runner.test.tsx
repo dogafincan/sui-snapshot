@@ -143,6 +143,97 @@ describe("useSnapshotRunner", () => {
     expect(notifyError).not.toHaveBeenCalled();
   });
 
+  it("hides implementation details from request errors", async () => {
+    const notifySuccess = vi.fn();
+    const notifyError = vi.fn();
+    const runSnapshotBatch = vi.fn().mockResolvedValue(undefined);
+
+    const { result } = renderHook(() =>
+      useSnapshotRunner({
+        notifyError,
+        notifySuccess,
+        runSnapshotBatch,
+      }),
+    );
+
+    act(() => {
+      result.current.changeCoinAddress("0x2::sui::SUI");
+    });
+
+    await act(async () => {
+      await result.current.submitSnapshot();
+    });
+
+    expect(result.current.requestError).toEqual({
+      title: "Snapshot could not be generated",
+      description: "Something went wrong while generating the snapshot. Please try again.",
+    });
+    expect(result.current.requestError?.description).not.toContain("batch");
+    expect(notifyError).toHaveBeenCalledWith(
+      "Something went wrong while generating the snapshot. Please try again.",
+    );
+    expect(notifySuccess).not.toHaveBeenCalled();
+  });
+
+  it("uses user-facing copy for common snapshot request failures", async () => {
+    const cases = [
+      {
+        error: new Error("Sui GraphQL request failed with HTTP 503."),
+        description: "Something went wrong while generating the snapshot. Please try again.",
+      },
+      {
+        error: new Error("Missing data.objects in GraphQL response."),
+        description: "Something went wrong while generating the snapshot. Please try again.",
+      },
+      {
+        error: new Error("internal error; reference = 35mj9ufrun4toju14itug1kg"),
+        description: "Something went wrong while generating the snapshot. Please try again.",
+      },
+      {
+        error: new TypeError("fetch failed"),
+        description: "The app could not connect. Check your internet connection and try again.",
+      },
+      {
+        error: new Error("Snapshot request timed out after 45 seconds."),
+        description: "The snapshot is taking longer than expected. Please try again.",
+      },
+    ];
+
+    for (const { error, description } of cases) {
+      const notifySuccess = vi.fn();
+      const notifyError = vi.fn();
+      const runSnapshotBatch = vi.fn().mockRejectedValue(error);
+
+      const { result, unmount } = renderHook(() =>
+        useSnapshotRunner({
+          notifyError,
+          notifySuccess,
+          runSnapshotBatch,
+        }),
+      );
+
+      act(() => {
+        result.current.changeCoinAddress("0x2::sui::SUI");
+      });
+
+      await act(async () => {
+        await result.current.submitSnapshot();
+      });
+
+      expect(result.current.requestError).toEqual({
+        title: "Snapshot could not be generated",
+        description,
+      });
+      expect(result.current.requestError?.description).not.toMatch(
+        /GraphQL|HTTP|Missing data|internal error|reference|batch/i,
+      );
+      expect(notifyError).toHaveBeenCalledWith(description);
+      expect(notifySuccess).not.toHaveBeenCalled();
+
+      unmount();
+    }
+  });
+
   it("pauses a multi-batch snapshot when cancellation is requested between batches", async () => {
     const notifySuccess = vi.fn();
     const notifyError = vi.fn();

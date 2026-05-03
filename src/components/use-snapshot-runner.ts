@@ -56,7 +56,17 @@ const DEFAULT_ENDPOINT = "https://graphql.mainnet.sui.io/graphql";
 export const DEFAULT_BATCH_PAUSE_MS = 100;
 
 const INTEGER_FORMATTER = new Intl.NumberFormat("en-US");
-const INTERNAL_SERVER_ERROR_PATTERN = /^internal error;\s*reference\s*=/i;
+const REQUEST_ERROR_TITLE = "Snapshot could not be generated";
+const GENERIC_REQUEST_ERROR_MESSAGE =
+  "Something went wrong while generating the snapshot. Please try again.";
+const CONNECTION_REQUEST_ERROR_MESSAGE =
+  "The app could not connect. Check your internet connection and try again.";
+const TIMEOUT_REQUEST_ERROR_MESSAGE =
+  "The snapshot is taking longer than expected. Please try again.";
+
+const CONNECTION_ERROR_PATTERN =
+  /network error|fetch failed|failed to fetch|load failed|could not connect/i;
+const TIMEOUT_ERROR_PATTERN = /timed out|timeout/i;
 
 export function formatInteger(value: number) {
   return INTEGER_FORMATTER.format(value);
@@ -77,18 +87,25 @@ function getFormError(error: unknown): FormError {
 }
 
 function getRequestError(error: unknown): RequestError {
-  const description = toErrorMessage(error);
+  const description = toErrorMessage(error).trim();
 
-  if (INTERNAL_SERVER_ERROR_PATTERN.test(description.trim())) {
+  if (TIMEOUT_ERROR_PATTERN.test(description)) {
     return {
-      title: "Snapshot could not be generated",
-      description: "The snapshot service returned an internal error. Please try again.",
+      title: REQUEST_ERROR_TITLE,
+      description: TIMEOUT_REQUEST_ERROR_MESSAGE,
+    };
+  }
+
+  if (CONNECTION_ERROR_PATTERN.test(description)) {
+    return {
+      title: REQUEST_ERROR_TITLE,
+      description: CONNECTION_REQUEST_ERROR_MESSAGE,
     };
   }
 
   return {
-    title: "Snapshot could not be generated",
-    description,
+    title: REQUEST_ERROR_TITLE,
+    description: GENERIC_REQUEST_ERROR_MESSAGE,
   };
 }
 

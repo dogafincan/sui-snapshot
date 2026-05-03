@@ -171,7 +171,7 @@ describe("SnapshotWorkbench", () => {
 
     expect(await screen.findByText("Snapshot could not be generated")).toBeTruthy();
     expect(
-      screen.getByText("The snapshot service returned an internal error. Please try again."),
+      screen.getByText("Something went wrong while generating the snapshot. Please try again."),
     ).toBeTruthy();
     expect(screen.queryByText("Snapshot failed")).toBeNull();
     expect(screen.queryByText("internal error; reference = 35mj9ufrun4toju14itug1kg")).toBeNull();
