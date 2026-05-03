@@ -8,9 +8,9 @@ function that runs the Sui holder snapshot logic on demand.
 
 Core behavior:
 
-- Query Sui GraphQL RPC for live `Coin<T>` objects for a token type in
+- Query Sui GraphQL RPC for live `Coin<T>` objects or NFT collection objects in
   Worker-safe page batches.
-- Aggregate non-zero balances by owner address.
+- Aggregate non-zero coin balances or NFT counts by owner address.
 - Render the result in a static paginated table UI.
 - Export the returned rows as CSV client-side.
 
@@ -36,7 +36,7 @@ workspace.
 - Build the tool itself as the first screen. Do not add landing-page heroes,
   marketing copy, explainer cards, or decorative sections unless the product
   explicitly needs them.
-- Keep the main workflow narrow. In this app that means: enter a Sui coin type,
+- Keep the main workflow narrow. In this app that means: enter a Sui type,
   generate a ranked holder snapshot, optionally cancel or resume a long run,
   download the CSV, and leave.
 - Remove UI that only explains the obvious. Summary metric cards,
@@ -52,9 +52,9 @@ workspace.
 - Use typography deliberately. Page headers may be large and bold; card and item
   titles should be readable and semibold; descriptions should generally stay
   base-sized and not too thin.
-- Keep copy concrete and user-facing. Prefer "Coin type", "Ranked holders",
-  "Generate snapshot", "Download CSV", "Coin type required", and
-  "Invalid coin type format" over vague or technical wording.
+- Keep copy concrete and user-facing. Prefer "Sui type", "Ranked holders",
+  "Generate snapshot", "Download CSV", "Sui type required", and
+  "Invalid Sui type format" over vague or technical wording.
 - Model async states explicitly. Loading skeletons should match the final card
   shape, cancelling should have its own button state, paused runs should appear
   below the resume action, and internal service errors should be sanitized.
@@ -239,7 +239,12 @@ If you change Worker bindings or env usage, also run:
 - Snapshot accuracy is based on live pagination over Sui GraphQL RPC, so it can
   drift slightly while large holder sets are scanned.
 - Zero-balance coin objects are excluded from holder counts, table rows, and CSV
-  exports.
+  exports. NFT collection objects count as one unit each and object-owned NFTs
+  should be resolved to their wallet owner when possible.
+- Object-owned NFT resolution is indexer-free. Follow object owners to kiosks,
+  prefer personal kiosk owner markers, and otherwise resolve the current owner
+  of the matching `KioskOwnerCap`. Do not rely on the kiosk move object
+  `json.owner` field because it can be stale after transfers.
 - Large holder sets are fetched across multiple server calls so each Worker
   invocation stays below the configured subrequest ceiling. The server batch
   page budget is computed from `SUI_GRAPHQL_MAX_SUBREQUESTS`, metadata request

@@ -4,8 +4,9 @@ TanStack Start web app for running Sui holder snapshots on Cloudflare Workers.
 
 The app:
 
-- scans Sui GraphQL RPC for live `Coin<T>` objects in Worker-safe page batches,
-- aggregates non-zero balances by owner address,
+- scans Sui GraphQL RPC for live `Coin<T>` objects or NFT collection objects in
+  Worker-safe page batches,
+- aggregates non-zero coin balances or NFT counts by owner address,
 - keeps an empty holders table visible before the first run,
 - renders the full result set in a paginated table after a snapshot completes,
 - exports the same rows as CSV without rerunning the snapshot.
@@ -27,7 +28,7 @@ Primary workflow:
 
 Input:
 
-- Sui coin type in `0xPACKAGE::MODULE::TOKEN` format
+- Sui type in `0xPACKAGE::MODULE::TYPE` format
 
 Output:
 
@@ -46,7 +47,7 @@ Reusable principles:
 - Put the actual tool on the first screen. Avoid landing-page framing,
   explanatory cards, and decorative sections when the user is here to complete a
   task.
-- Keep the workflow narrow and obvious: enter a coin type, generate the
+- Keep the workflow narrow and obvious: enter a Sui type, generate the
   snapshot, optionally cancel or resume a long run, download the CSV, and leave.
 - Make every visible element earn its place. Removed patterns include
   ready-to-run explainers, snapshot-type pills, summary metric cards, snapshot
@@ -254,7 +255,12 @@ vp run cf-typegen
 - Snapshot accuracy is based on live pagination over Sui GraphQL RPC, so it can
   drift slightly while large holder sets are scanned.
 - Zero-balance coin objects are excluded from holder counts, table rows, and CSV
-  exports.
+  exports. NFT collection objects count as one unit each.
+- Object-owned NFTs are resolved without a third-party indexer. The server
+  follows object ownership to kiosks, reads personal kiosk owner markers when
+  present, and otherwise resolves the current owner of the matching
+  `KioskOwnerCap`. Do not use the kiosk move object `json.owner` field as the
+  source of truth; it can be stale after transfers.
 - Large holder sets are fetched across multiple server calls so each Worker
   invocation stays below the configured subrequest ceiling. The server computes
   each batch's page budget from `SUI_GRAPHQL_MAX_SUBREQUESTS`, metadata request
