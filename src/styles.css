@@ -231,7 +231,7 @@
         color-mix(in oklab, white 8%, var(--snapshot-hero-mesh-cyan)) 40%,
         color-mix(in oklab, white 14%, var(--snapshot-hero-mesh-lavender)) 100%
       );
-    transform: scale(1.04);
+    transform: scaleY(1.04);
     transform-origin: top center;
   }
   code {

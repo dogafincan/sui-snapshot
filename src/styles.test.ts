@@ -39,6 +39,8 @@ describe("global styles", () => {
     expect(meshLayer).toContain("transparent 82%, var(--background)");
     expect(meshLayer).toContain("transparent 48%, var(--background)");
     expect(meshLayer).toContain("var(--background)");
+    expect(meshLayer).not.toContain("scale(");
+    expect(meshLayer).not.toContain("scaleX(");
     expect(meshLayer).not.toContain("url(");
   });
 });
