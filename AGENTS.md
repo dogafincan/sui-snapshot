@@ -11,6 +11,8 @@ Core behavior:
 - Query Sui GraphQL RPC for live `Coin<T>` objects or NFT collection objects in
   Worker-safe page batches.
 - Aggregate non-zero coin balances or NFT counts by owner address.
+- Resolve object-owned NFT holders through direct ownership, personal kiosk
+  owner markers, and standard kiosk owner caps without using an indexer.
 - Render the result in a static paginated table UI.
 - Export the returned rows as CSV client-side.
 
@@ -168,6 +170,10 @@ aligned with `wrangler.jsonc`.
   final snapshot result is built. Aggregate with `BigInt` internally, serialize
   raw balances as strings between Worker calls, and format decimal display values
   only at the final table/CSV result boundary.
+- Preserve the coin/NFT asset-kind handshake between server batches. The first
+  batch detects whether the Sui type is a coin or object collection; later
+  batches must carry `assetKind` and `decimals` so NFT snapshots do not retry
+  coin metadata on every batch.
 - Prefer putting reusable pure logic in `src/lib/sui-snapshot.ts` so it stays
   easy to unit test.
 - Prefer keeping Cloudflare-specific runtime code in server-only modules.
@@ -245,6 +251,14 @@ If you change Worker bindings or env usage, also run:
   prefer personal kiosk owner markers, and otherwise resolve the current owner
   of the matching `KioskOwnerCap`. Do not rely on the kiosk move object
   `json.owner` field because it can be stale after transfers.
+- NFT/object snapshots intentionally scan fewer objects per Worker invocation
+  than coin snapshots. `OBJECT_PAGE_SIZE` is conservative because kiosk
+  resolution can add multiple GraphQL reads per NFT; do not increase it without
+  checking the Cloudflare subrequest budget and a kiosk-heavy collection.
+- Keep NFT resolver tests for direct ownership, personal kiosk markers, and
+  current `KioskOwnerCap` ownership. The standard kiosk case must assert the cap
+  object's current owner, not the owner stored in transaction effects or kiosk
+  JSON.
 - Large holder sets are fetched across multiple server calls so each Worker
   invocation stays below the configured subrequest ceiling. The server batch
   page budget is computed from `SUI_GRAPHQL_MAX_SUBREQUESTS`, metadata request
@@ -253,5 +267,8 @@ If you change Worker bindings or env usage, also run:
   requests.
 - Generated files `src/routeTree.gen.ts` and `worker-configuration.d.ts` are
   excluded from Vite+ formatting and linting.
+- For Cloudflare Workers Builds, the current dashboard command pair is
+  `npm run build` as the build command and `npx wrangler deploy` as the deploy
+  command.
 - This repo does not manage Vite+ commit hooks, editor scaffolding, or agent
   scaffolding.

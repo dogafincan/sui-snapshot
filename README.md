@@ -1,12 +1,15 @@
 # Sui Snapshot
 
-TanStack Start web app for running Sui holder snapshots on Cloudflare Workers.
+TanStack Start web app for running Sui coin and NFT collection holder snapshots
+on Cloudflare Workers.
 
 The app:
 
 - scans Sui GraphQL RPC for live `Coin<T>` objects or NFT collection objects in
   Worker-safe page batches,
 - aggregates non-zero coin balances or NFT counts by owner address,
+- resolves object-owned NFTs through Sui object ownership, personal kiosks, and
+  standard kiosk owner caps without a third-party indexer,
 - keeps an empty holders table visible before the first run,
 - renders the full result set in a paginated table after a snapshot completes,
 - exports the same rows as CSV without rerunning the snapshot.
@@ -28,13 +31,18 @@ Primary workflow:
 
 Input:
 
-- Sui type in `0xPACKAGE::MODULE::TYPE` format
+- Sui type in `0xPACKAGE::MODULE::TYPE` format. This can be either a coin type
+  such as `0x2::sui::SUI` or an NFT object type such as
+  `0xPACKAGE::collection::Nft`.
 
 Output:
 
 - empty holder table before the first snapshot
 - ranked non-zero holder table
 - client-side CSV download with exactly `rank,address,balance`
+
+For coins, `balance` is the final decimal balance. For NFT collections,
+`balance` is the number of collection objects resolved to that holder.
 
 ## Design And UX Direction
 
@@ -106,6 +114,36 @@ Reusable principles:
 - `src/lib/sui-snapshot.functions.ts`: TanStack Start server function wrapper
 - `src/lib/sui-snapshot.ts`: shared validation, formatting, and CSV helpers
 - `wrangler.jsonc`: Cloudflare Worker configuration
+
+## Snapshot Pipeline
+
+The server first tries to read coin metadata for the submitted Sui type. If coin
+metadata exists, the input is treated as a coin and the app scans live
+`0x2::coin::Coin<T>` objects. Coin objects expose address ownership and raw
+base-unit balances, so each page can be aggregated directly.
+
+If coin metadata does not exist, the input is treated as an NFT/object
+collection type. The app scans live objects whose type exactly matches the
+submitted type. Each object counts as one unit.
+
+NFT ownership can be indirect:
+
+- address-owned NFT objects are counted directly for that address,
+- object-owned NFT objects are followed through their owner object chain,
+- personal-kiosk NFTs are resolved through the personal kiosk owner marker,
+- standard-kiosk NFTs are resolved by discovering the matching `KioskOwnerCap`
+  and reading that cap object's current owner.
+
+This is intentionally indexer-free. The app does not call SuiScan, Blockberry, or
+another third-party indexing API for NFT holder resolution. It derives the
+snapshot from current Sui GraphQL RPC object state. Do not use the kiosk move
+object `json.owner` field as the holder source of truth; it can be stale after
+transfers.
+
+Coin pages currently request 50 objects per Sui GraphQL page. NFT pages request
+10 objects per Worker batch because resolving kiosk ownership can require
+additional GraphQL subrequests per NFT. That lower page size is a Cloudflare
+subrequest-budget choice, not a Sui protocol maximum.
 
 Generated files:
 
@@ -198,6 +236,14 @@ vp run deploy
 The Worker entrypoint is `@tanstack/react-start/server-entry`, configured in
 `wrangler.jsonc`.
 
+For Cloudflare Workers Builds, use:
+
+- build command: `npm run build`
+- deploy command: `npx wrangler deploy`
+
+Those npm commands call the same Vite+ build and Wrangler deployment path used
+locally.
+
 ## Verification
 
 Useful checks before deploying:
@@ -265,5 +311,6 @@ vp run cf-typegen
   invocation stays below the configured subrequest ceiling. The server computes
   each batch's page budget from `SUI_GRAPHQL_MAX_SUBREQUESTS`, metadata request
   cost, and `SUI_GRAPHQL_RETRY_HEADROOM`; coin metadata is carried across
-  batches to avoid redundant requests.
+  batches to avoid redundant requests. NFT/object snapshots intentionally use a
+  smaller page size because owner resolution can require extra Sui GraphQL reads.
 - The original CLI script has been removed; this repository is now web-app-first.
