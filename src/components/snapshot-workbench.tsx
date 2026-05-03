@@ -121,10 +121,10 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
 
   return (
     <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-full flex-col gap-8 px-3 py-10 sm:max-w-6xl sm:px-6 lg:px-8">
-      <header className="flex flex-col items-center gap-4 text-center md:flex-row md:gap-6 md:pl-4 md:text-left">
+      <header className="flex flex-col items-center gap-4 text-center">
         <div
           data-slot="app-logo"
-          className="relative size-15 shrink-0 overflow-hidden md:size-16"
+          className="relative size-15 shrink-0 overflow-hidden"
           aria-hidden="true"
         >
           <img
@@ -140,7 +140,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
             className="size-full"
           />
         </div>
-        <div className="flex min-w-0 flex-col gap-2 md:gap-1.5">
+        <div className="flex min-w-0 flex-col gap-2">
           <h1 className="text-balance text-4xl leading-tight font-bold tracking-tight">
             Sui Snapshot
           </h1>

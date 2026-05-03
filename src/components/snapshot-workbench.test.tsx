@@ -57,10 +57,16 @@ describe("SnapshotWorkbench", () => {
     const appSubtitle = screen.getByText(
       "Generate a ranked holder list for a Sui coin or NFT collection and export it as CSV.",
     );
+    const appHeader = appTitle.closest("header");
     const appLogo = container.querySelector('[data-slot="app-logo"]');
+    const appTitleBlock = appTitle.parentElement;
     const appLogoForLightMode = appLogo?.querySelector('[data-slot="app-logo-for-light-mode"]');
     const appLogoForDarkMode = appLogo?.querySelector('[data-slot="app-logo-for-dark-mode"]');
 
+    expect(appHeader?.className).toBe("flex flex-col items-center gap-4 text-center");
+    expect(appHeader?.className).not.toContain("md:");
+    expect(appLogo?.className).toBe("relative size-15 shrink-0 overflow-hidden");
+    expect(appTitleBlock?.className).toBe("flex min-w-0 flex-col gap-2");
     expect(appLogoForLightMode?.getAttribute("src")).toBe("/logo-dark.png");
     expect(appLogoForLightMode?.getAttribute("alt")).toBe("");
     expect(appLogoForDarkMode?.getAttribute("src")).toBe("/logo-light.png");
