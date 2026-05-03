@@ -80,7 +80,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --snapshot-hero-gradient-height: 600px;
+  --snapshot-hero-gradient-height: 1000px;
   --snapshot-hero-mesh-pale-blue: #bbc8fe;
   --snapshot-hero-mesh-cyan: #79ccf6;
   --snapshot-hero-mesh-teal: #76c2db;
@@ -185,7 +185,14 @@
     height: var(--snapshot-hero-gradient-height);
     pointer-events: none;
     background:
-      linear-gradient(to bottom, transparent 0%, transparent 58%, var(--background) 100%),
+      linear-gradient(
+        to bottom,
+        transparent 0%,
+        transparent 40%,
+        color-mix(in oklab, transparent 82%, var(--background)) 58%,
+        color-mix(in oklab, transparent 48%, var(--background)) 76%,
+        var(--background) 100%
+      ),
       radial-gradient(
         ellipse 38% 26% at 50% 29%,
         color-mix(in oklab, white 82%, var(--snapshot-hero-mesh-lavender)) 0%,
