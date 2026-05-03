@@ -30,7 +30,7 @@ import {
 } from "@/components/use-snapshot-runner";
 
 const COIN_ADDRESS_PLACEHOLDER = "Enter a Sui type";
-const HEADER_LOGO = "/logo-light.png";
+const HEADER_LOGO = "/apple-touch-icon.png";
 
 function ResultsSkeleton() {
   return (

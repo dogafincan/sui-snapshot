@@ -75,7 +75,7 @@ describe("SnapshotWorkbench", () => {
     );
     expect(appSubtitleContinuation?.textContent).toBe("or NFT collection and export it as CSV.");
     expect(appSubtitleContinuation?.className).toBe("md:block");
-    expect(appLogoImage?.getAttribute("src")).toBe("/logo-light.png");
+    expect(appLogoImage?.getAttribute("src")).toBe("/apple-touch-icon.png");
     expect(appLogoImage?.getAttribute("alt")).toBe("");
     expect(appTitle).toBeTruthy();
     expect(appSubtitle).toBeTruthy();

@@ -196,9 +196,9 @@ aligned with `wrangler.jsonc`.
 - Use Lucide for all UI icons via `lucide-react`. Do not add Hugeicons or
   another icon package for product UI. Keep `components.json`, `package.json`,
   and `src/components/icon-system.test.ts` aligned with that rule.
-- Keep the logo and favicon behavior theme-aware. The header logo uses the dark
-  asset in light mode and the light asset in dark mode; favicons use media
-  queries for light and dark variants.
+- Keep the logo and favicon behavior theme-neutral unless explicitly requested.
+  The header logo uses the shared public icon asset, and favicons should not use
+  light/dark media-query variants.
 - Keep loading, cancelling, paused, and error states calm and precise. When
   cancellation is pending, only the cancel button should show a cancelling
   loader; the generate button should remain disabled with its normal label and
