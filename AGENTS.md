@@ -92,24 +92,26 @@ Do not hand-edit these unless there is a specific reason and you know the genera
 
 Regenerate them with the normal toolchain when needed:
 
-- `vp dev`
-- `vp build`
-- `vp run cf-typegen`
+- `npx vp dev`
+- `npx vp build`
+- `npx vp run cf-typegen`
 
 ## Local Commands
 
-- `vp env setup`
-- `vp install`
-- `vp dev`
-- `vp check`
-- `vp test`
-- `vp build`
-- `vp preview --host 127.0.0.1`
-- `vp run deploy`
-- `vp run cf-typegen`
+- `npx vp env setup`
+- `npx vp install`
+- `npx vp dev`
+- `npx vp check`
+- `npx vp test`
+- `npx vp build`
+- `npx vp preview --host 127.0.0.1`
+- `npx vp run deploy`
+- `npx vp run cf-typegen`
 
 Compatibility wrappers remain in `package.json`, but Vite+ commands are the
-primary workflow.
+primary workflow. Invoke Vite+ through `npx vp ...` so the repo-local CLI is
+used even when `vp` is not on the shell `PATH`; do not fall back to npm
+compatibility wrappers unless the user explicitly asks for them.
 
 Default local URL:
 
@@ -177,8 +179,9 @@ aligned with `wrangler.jsonc`.
 - Prefer putting reusable pure logic in `src/lib/sui-snapshot.ts` so it stays
   easy to unit test.
 - Prefer keeping Cloudflare-specific runtime code in server-only modules.
-- Keep Vite+ as the primary toolchain. Prefer configuring format, lint, test,
-  and task behavior in `vite.config.ts` instead of separate tool config files.
+- Keep Vite+ as the primary toolchain. Run it as `npx vp ...`, and prefer
+  configuring format, lint, test, and task behavior in `vite.config.ts` instead
+  of separate tool config files.
 - Use existing shadcn components before introducing custom primitives.
 - Preserve the current visual contract: stock shadcn `base-luma` styling with the
   applied preset, Inter, and Base UI primitives. The snapshot controls and holder
@@ -214,9 +217,9 @@ aligned with `wrangler.jsonc`.
 
 When changing behavior, run:
 
-- `vp check`
-- `vp test`
-- `vp build`
+- `npx vp check`
+- `npx vp test`
+- `npx vp build`
 
 For UI/UX changes, also check the relevant responsive states manually or with
 browser automation when practical:
@@ -237,7 +240,7 @@ not available.
 
 If you change Worker bindings or env usage, also run:
 
-- `vp run cf-typegen`
+- `npx vp run cf-typegen`
 
 ## Notes
 
