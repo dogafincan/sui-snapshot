@@ -26,6 +26,8 @@ describe("global styles", () => {
     const meshLayer = styles.slice(meshLayerStart, meshLayerEnd);
 
     expect(styles).toContain("--snapshot-hero-gradient-height: 600px;");
+    expect(meshLayer).toContain("position: absolute;");
+    expect(meshLayer).not.toContain("position: fixed;");
     expect(meshLayer).toContain("height: var(--snapshot-hero-gradient-height);");
     expect(meshLayer).toContain("radial-gradient");
     expect(meshLayer).toContain("linear-gradient(to bottom");

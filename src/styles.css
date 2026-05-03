@@ -178,7 +178,7 @@
   }
   body::before {
     content: "";
-    position: fixed;
+    position: absolute;
     inset: 0 0 auto;
     z-index: -1;
     height: var(--snapshot-hero-gradient-height);
