@@ -26,9 +26,13 @@ describe("global styles", () => {
     const meshLayer = styles.slice(meshLayerStart, meshLayerEnd);
 
     expect(styles).toContain("--snapshot-hero-gradient-height: 600px;");
+    expect(styles).toContain("--snapshot-hero-mesh-purple: #b68ffe;");
     expect(meshLayer).toContain("position: absolute;");
     expect(meshLayer).not.toContain("position: fixed;");
     expect(meshLayer).toContain("height: var(--snapshot-hero-gradient-height);");
+    expect(meshLayer).toContain("ellipse 38% 26% at 50% 29%");
+    expect(meshLayer).toContain("ellipse 48% 42% at 14% 44%");
+    expect(meshLayer).toContain("ellipse 50% 42% at 84% 44%");
     expect(meshLayer).toContain("radial-gradient");
     expect(meshLayer).toContain("linear-gradient(to bottom");
     expect(meshLayer).toContain("var(--background)");

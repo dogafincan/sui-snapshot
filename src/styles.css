@@ -87,6 +87,7 @@
   --snapshot-hero-mesh-sky: #93c7e7;
   --snapshot-hero-mesh-periwinkle: #86a3fc;
   --snapshot-hero-mesh-lavender: #c5c0fd;
+  --snapshot-hero-mesh-purple: #b68ffe;
 }
 
 .dark {
@@ -186,10 +187,10 @@
     background:
       linear-gradient(to bottom, transparent 0%, transparent 58%, var(--background) 100%),
       radial-gradient(
-        ellipse 30% 22% at 50% 16%,
-        color-mix(in oklab, white 72%, var(--snapshot-hero-mesh-sky)) 0%,
-        color-mix(in oklab, white 38%, var(--snapshot-hero-mesh-pale-blue)) 36%,
-        transparent 72%
+        ellipse 38% 26% at 50% 29%,
+        color-mix(in oklab, white 82%, var(--snapshot-hero-mesh-lavender)) 0%,
+        color-mix(in oklab, white 62%, var(--snapshot-hero-mesh-purple)) 44%,
+        transparent 76%
       ),
       radial-gradient(
         ellipse 72% 44% at 48% 8%,
@@ -198,14 +199,14 @@
         transparent 82%
       ),
       radial-gradient(
-        ellipse 56% 44% at 15% 44%,
-        color-mix(in oklab, transparent 12%, var(--snapshot-hero-mesh-cyan)) 0%,
+        ellipse 48% 42% at 14% 44%,
+        color-mix(in oklab, transparent 18%, var(--snapshot-hero-mesh-purple)) 0%,
         transparent 68%
       ),
       radial-gradient(
-        ellipse 54% 40% at 78% 42%,
-        color-mix(in oklab, transparent 16%, var(--snapshot-hero-mesh-periwinkle)) 0%,
-        transparent 66%
+        ellipse 50% 42% at 84% 44%,
+        color-mix(in oklab, transparent 18%, var(--snapshot-hero-mesh-purple)) 0%,
+        transparent 68%
       ),
       radial-gradient(
         ellipse 48% 42% at 74% 82%,
