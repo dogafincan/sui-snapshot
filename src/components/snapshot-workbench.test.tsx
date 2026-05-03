@@ -54,12 +54,11 @@ describe("SnapshotWorkbench", () => {
     const { container } = render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
     const coinAddressInput = screen.getByLabelText("Sui type") as HTMLInputElement;
     const appTitle = screen.getByRole("heading", { level: 1, name: "Sui Snapshot" });
-    const appSubtitle = screen.getByText(
-      "Generate a ranked holder list for a Sui coin or NFT collection and export it as CSV.",
-    );
     const appHeader = appTitle.closest("header");
     const appLogo = container.querySelector('[data-slot="app-logo"]');
     const appTitleBlock = appTitle.parentElement;
+    const appSubtitle = appTitleBlock?.querySelector("p");
+    const appSubtitleContinuation = appSubtitle?.querySelector("span");
     const appLogoForLightMode = appLogo?.querySelector('[data-slot="app-logo-for-light-mode"]');
     const appLogoForDarkMode = appLogo?.querySelector('[data-slot="app-logo-for-dark-mode"]');
 
@@ -67,6 +66,14 @@ describe("SnapshotWorkbench", () => {
     expect(appHeader?.className).not.toContain("md:");
     expect(appLogo?.className).toBe("relative size-15 shrink-0 overflow-hidden");
     expect(appTitleBlock?.className).toBe("flex min-w-0 flex-col gap-2");
+    expect(appSubtitle?.textContent).toBe(
+      "Generate a ranked holder list for a Sui coin or NFT collection and export it as CSV.",
+    );
+    expect(appSubtitle?.className).toBe(
+      "max-w-[40rem] text-balance text-lg font-medium text-muted-foreground md:max-w-full",
+    );
+    expect(appSubtitleContinuation?.textContent).toBe("or NFT collection and export it as CSV.");
+    expect(appSubtitleContinuation?.className).toBe("md:block");
     expect(appLogoForLightMode?.getAttribute("src")).toBe("/logo-dark.png");
     expect(appLogoForLightMode?.getAttribute("alt")).toBe("");
     expect(appLogoForDarkMode?.getAttribute("src")).toBe("/logo-light.png");

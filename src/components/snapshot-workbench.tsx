@@ -144,8 +144,9 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
           <h1 className="text-balance text-4xl leading-tight font-bold tracking-tight">
             Sui Snapshot
           </h1>
-          <p className="max-w-full text-balance text-lg font-medium text-muted-foreground sm:max-w-3xl">
-            Generate a ranked holder list for a Sui coin or NFT collection and export it as CSV.
+          <p className="max-w-[40rem] text-balance text-lg font-medium text-muted-foreground md:max-w-full">
+            Generate a ranked holder list for a Sui coin{" "}
+            <span className="md:block">or NFT collection and export it as CSV.</span>
           </p>
         </div>
       </header>
