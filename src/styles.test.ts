@@ -12,13 +12,11 @@ describe("global styles", () => {
     expect(styles).not.toContain("@custom-variant dark (&:is(.dark *));");
   });
 
-  it("swaps the header logo for dark mode", () => {
+  it("does not use global styles to swap the header logo by theme", () => {
     const styles = readFileSync("src/styles.css", "utf8");
 
-    expect(styles).toContain('[data-slot="app-logo-for-light-mode"]');
-    expect(styles).toContain('[data-slot="app-logo-for-dark-mode"]');
-    expect(styles).toContain('.dark [data-slot="app-logo-for-light-mode"]');
-    expect(styles).toContain('.dark [data-slot="app-logo-for-dark-mode"]');
+    expect(styles).not.toContain('[data-slot="app-logo-for-light-mode"]');
+    expect(styles).not.toContain('[data-slot="app-logo-for-dark-mode"]');
   });
 
   it("uses a CSS-only mesh background that fades into the theme background", () => {

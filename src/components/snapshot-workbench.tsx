@@ -30,8 +30,7 @@ import {
 } from "@/components/use-snapshot-runner";
 
 const COIN_ADDRESS_PLACEHOLDER = "Enter a Sui type";
-const HEADER_LOGO_FOR_LIGHT_MODE = "/logo-dark.png";
-const HEADER_LOGO_FOR_DARK_MODE = "/logo-light.png";
+const HEADER_LOGO = "/logo-light.png";
 
 function ResultsSkeleton() {
   return (
@@ -127,18 +126,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
           className="relative size-15 shrink-0 overflow-hidden"
           aria-hidden="true"
         >
-          <img
-            src={HEADER_LOGO_FOR_LIGHT_MODE}
-            alt=""
-            data-slot="app-logo-for-light-mode"
-            className="size-full"
-          />
-          <img
-            src={HEADER_LOGO_FOR_DARK_MODE}
-            alt=""
-            data-slot="app-logo-for-dark-mode"
-            className="size-full"
-          />
+          <img src={HEADER_LOGO} alt="" data-slot="app-logo-image" className="size-full" />
         </div>
         <div className="flex min-w-0 flex-col gap-2">
           <h1 className="text-balance text-4xl leading-tight font-bold tracking-tight">

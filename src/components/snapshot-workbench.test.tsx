@@ -59,8 +59,7 @@ describe("SnapshotWorkbench", () => {
     const appTitleBlock = appTitle.parentElement;
     const appSubtitle = appTitleBlock?.querySelector("p");
     const appSubtitleContinuation = appSubtitle?.querySelector("span");
-    const appLogoForLightMode = appLogo?.querySelector('[data-slot="app-logo-for-light-mode"]');
-    const appLogoForDarkMode = appLogo?.querySelector('[data-slot="app-logo-for-dark-mode"]');
+    const appLogoImage = appLogo?.querySelector('[data-slot="app-logo-image"]');
 
     expect(appHeader?.className).toBe("flex flex-col items-center gap-4 text-center");
     expect(appHeader?.className).not.toContain("md:");
@@ -74,10 +73,8 @@ describe("SnapshotWorkbench", () => {
     );
     expect(appSubtitleContinuation?.textContent).toBe("or NFT collection and export it as CSV.");
     expect(appSubtitleContinuation?.className).toBe("md:block");
-    expect(appLogoForLightMode?.getAttribute("src")).toBe("/logo-dark.png");
-    expect(appLogoForLightMode?.getAttribute("alt")).toBe("");
-    expect(appLogoForDarkMode?.getAttribute("src")).toBe("/logo-light.png");
-    expect(appLogoForDarkMode?.getAttribute("alt")).toBe("");
+    expect(appLogoImage?.getAttribute("src")).toBe("/logo-light.png");
+    expect(appLogoImage?.getAttribute("alt")).toBe("");
     expect(appTitle).toBeTruthy();
     expect(appSubtitle).toBeTruthy();
     expect(coinAddressInput.value).toBe("");
