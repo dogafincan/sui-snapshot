@@ -96,7 +96,7 @@ describe("SnapshotWorkbench", () => {
     const workbenchSection = container.querySelector('[data-slot="snapshot-workbench"]');
     const tableCard = rankedHolders.closest('[data-slot="card"]');
     const holderSummaryItem = rankedHolders.closest('[data-slot="item"]');
-    const holderSummaryDescription = screen.getByText("0 holders across 1 page.");
+    const holderSummaryDescription = screen.getByText("Generate a snapshot to see ranked holders.");
     const generateButton = screen.getByRole("button", { name: "Generate snapshot" });
     const controls = container.querySelector('[data-slot="snapshot-controls"]');
     const formCard = generateButton.closest('[data-slot="card"]');
@@ -110,6 +110,7 @@ describe("SnapshotWorkbench", () => {
     expect(controls?.className).toContain("lg:top-6");
     expect(formCard?.className).not.toContain("lg:sticky");
     expect(holderSummaryDescription).toBeTruthy();
+    expect(screen.queryByText("0 holders across 1 page.")).toBeNull();
     expect(screen.getByText("Rank")).toBeTruthy();
     expect(screen.getByText("Address")).toBeTruthy();
     expect(screen.getByText("Balance")).toBeTruthy();

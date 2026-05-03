@@ -31,6 +31,7 @@ import {
 
 const COIN_ADDRESS_PLACEHOLDER = "Enter a Sui type";
 const HEADER_LOGO = "/apple-touch-icon.png";
+const EMPTY_HOLDERS_SUMMARY = "Generate a snapshot to see ranked holders.";
 
 function ResultsSkeleton() {
   return (
@@ -88,7 +89,7 @@ function EmptyHolderTable() {
   return (
     <Card className="min-w-0 max-w-full flex-1 overflow-hidden">
       <CardContent className="flex min-w-0 flex-1 flex-col px-4 sm:px-6">
-        <HoldersTable rows={[]} />
+        <HoldersTable rows={[]} summaryDescription={EMPTY_HOLDERS_SUMMARY} />
       </CardContent>
     </Card>
   );

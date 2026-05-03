@@ -60,7 +60,15 @@ function getColumnClassName(columnId: HolderColumnId, hasRows: boolean) {
   return "min-w-[32rem]";
 }
 
-export function HoldersTable({ rows, action }: { rows: SnapshotRow[]; action?: ReactNode }) {
+export function HoldersTable({
+  rows,
+  action,
+  summaryDescription,
+}: {
+  rows: SnapshotRow[];
+  action?: ReactNode;
+  summaryDescription?: ReactNode;
+}) {
   const [pageIndex, setPageIndex] = useState(0);
 
   useEffect(() => {
@@ -82,7 +90,11 @@ export function HoldersTable({ rows, action }: { rows: SnapshotRow[]; action?: R
         <ItemContent>
           <ItemTitle>Ranked holders</ItemTitle>
           <ItemDescription>
-            {holderCount} {holderLabel} across {pageCount} {pageLabel}.
+            {summaryDescription ?? (
+              <>
+                {holderCount} {holderLabel} across {pageCount} {pageLabel}.
+              </>
+            )}
           </ItemDescription>
         </ItemContent>
       </Item>
