@@ -29,7 +29,7 @@ import {
   useSnapshotRunner,
 } from "@/components/use-snapshot-runner";
 
-const COIN_ADDRESS_PLACEHOLDER = "Enter a Sui coin type";
+const COIN_ADDRESS_PLACEHOLDER = "Enter a Sui type";
 const HEADER_LOGO_FOR_LIGHT_MODE = "/logo-dark.png";
 const HEADER_LOGO_FOR_DARK_MODE = "/logo-light.png";
 
@@ -145,7 +145,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
             Sui Snapshot
           </h1>
           <p className="max-w-full text-balance text-lg font-medium text-muted-foreground sm:max-w-3xl">
-            Generate a ranked holder list for a Sui coin type and export it as CSV.
+            Generate a ranked holder list for a Sui coin or NFT collection and export it as CSV.
           </p>
         </div>
       </header>
@@ -165,10 +165,10 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
                   <Field className="gap-5">
                     <FieldContent className="gap-1">
                       <FieldLabel htmlFor="coin-type" className="text-base font-semibold">
-                        Coin type
+                        Sui type
                       </FieldLabel>
                       <FieldDescription className="text-base leading-normal">
-                        Use the format <code>0xPACKAGE::MODULE::TOKEN</code>.
+                        Use the format <code>0xPACKAGE::MODULE::TYPE</code>.
                       </FieldDescription>
                     </FieldContent>
                     <Input

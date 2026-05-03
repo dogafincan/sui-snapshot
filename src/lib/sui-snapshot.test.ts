@@ -14,7 +14,7 @@ import {
 const ADDRESS_A = `0x${"1".padStart(64, "0")}`;
 
 describe("sui snapshot helpers", () => {
-  it("normalizes coin types", () => {
+  it("normalizes Sui types", () => {
     expect(normalizeCoinType("0x2::sui::SUI")).toBe(`0x${"2".padStart(64, "0")}::sui::SUI`);
     expect(() => normalizeCoinType("not-a-coin")).toThrow(COIN_TYPE_FORMAT_MESSAGE);
   });

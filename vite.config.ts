@@ -9,6 +9,7 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 
 const isVitest = process.env.VITEST === "true";
 const enableTanStackDevtools = process.env.TANSTACK_DEVTOOLS === "true";
+const mystenGraphQLDeps = ["@mysten/sui", "@mysten/sui/graphql", "@mysten/sui/graphql/schema"];
 
 const config = defineConfig({
   fmt: {
@@ -37,6 +38,7 @@ const config = defineConfig({
     },
     ssr: {
       optimizeDeps: {
+        exclude: mystenGraphQLDeps,
         include: ["@tanstack/react-devtools"],
       },
     },

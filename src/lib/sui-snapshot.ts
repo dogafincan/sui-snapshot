@@ -4,8 +4,10 @@ const SUI_ADDRESS_PATTERN = /^(?:0x)?([0-9a-fA-F]{1,64})$/;
 const COIN_TYPE_PATTERN =
   /^(0x[0-9a-fA-F]{1,64})::([A-Za-z_][A-Za-z0-9_]*)::([A-Za-z_][A-Za-z0-9_]*)$/;
 
-export const COIN_TYPE_REQUIRED_MESSAGE = "Enter a Sui coin type.";
-export const COIN_TYPE_FORMAT_MESSAGE = "Enter a coin type in 0xPACKAGE::MODULE::TOKEN format.";
+export const COIN_TYPE_REQUIRED_MESSAGE = "Enter a Sui type.";
+export const COIN_TYPE_FORMAT_MESSAGE = "Enter a Sui type in 0xPACKAGE::MODULE::TYPE format.";
+
+export type SnapshotAssetKind = "coin" | "object";
 
 export interface SnapshotMeta {
   endpoint: string;
@@ -36,6 +38,7 @@ export interface SnapshotPageBatchResult {
   cursor: string | null;
   nextCursor: string | null;
   decimals: number;
+  assetKind: SnapshotAssetKind;
   pagesFetched: number;
   objectsFetched: number;
 }
@@ -97,6 +100,7 @@ export type SnapshotInput = z.infer<typeof snapshotInputSchema>;
 export const snapshotPageBatchInputSchema = snapshotInputSchema.extend({
   cursor: z.string().nullable(),
   decimals: z.number().int().min(0).nullable().default(null),
+  assetKind: z.enum(["coin", "object"]).nullable().optional(),
 });
 
 export type SnapshotPageBatchInput = z.infer<typeof snapshotPageBatchInputSchema>;

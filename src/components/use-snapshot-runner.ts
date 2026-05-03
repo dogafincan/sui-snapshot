@@ -9,6 +9,7 @@ import {
   buildSnapshotResult,
   COIN_TYPE_REQUIRED_MESSAGE,
   toErrorMessage,
+  type SnapshotAssetKind,
   type SnapshotBalanceRow,
   type SnapshotInput,
   type SnapshotPageBatchInput,
@@ -30,6 +31,7 @@ export interface SnapshotRunState extends SnapshotProgress {
   balances: SnapshotBalanceRow[];
   nextCursor: string | null;
   decimals: number | null;
+  assetKind: SnapshotAssetKind | null;
   endpoint: string | null;
 }
 
@@ -61,7 +63,7 @@ export function formatInteger(value: number) {
 }
 
 export function formatCoinObjectProgress(value: number) {
-  return `${formatInteger(value)} coin object${value === 1 ? "" : "s"} scanned`;
+  return `${formatInteger(value)} object${value === 1 ? "" : "s"} scanned`;
 }
 
 function getFormError(error: unknown): FormError {
@@ -69,9 +71,7 @@ function getFormError(error: unknown): FormError {
 
   return {
     title:
-      description === COIN_TYPE_REQUIRED_MESSAGE
-        ? "Coin type required"
-        : "Invalid coin type format",
+      description === COIN_TYPE_REQUIRED_MESSAGE ? "Sui type required" : "Invalid Sui type format",
     description,
   };
 }
@@ -153,6 +153,7 @@ export function useSnapshotRunner({
       const balances: SnapshotBalanceRow[] = [...initialState.balances];
       let nextCursor = initialState.nextCursor;
       let decimals = initialState.decimals;
+      let assetKind = initialState.assetKind;
       let pagesFetched = initialState.pagesFetched;
       let objectsFetched = initialState.objectsFetched;
       let endpoint = initialState.endpoint;
@@ -163,6 +164,7 @@ export function useSnapshotRunner({
             ...payload,
             cursor: nextCursor,
             decimals,
+            assetKind,
           },
         });
 
@@ -172,6 +174,7 @@ export function useSnapshotRunner({
 
         endpoint = batch.meta.endpoint;
         decimals = batch.decimals;
+        assetKind = batch.assetKind;
         balances.push(...batch.balances);
         pagesFetched += batch.pagesFetched;
         objectsFetched += batch.objectsFetched;
@@ -191,6 +194,7 @@ export function useSnapshotRunner({
             balances,
             nextCursor,
             decimals,
+            assetKind,
             pagesFetched,
             objectsFetched,
             endpoint,
@@ -206,6 +210,7 @@ export function useSnapshotRunner({
             balances,
             nextCursor,
             decimals,
+            assetKind,
             pagesFetched,
             objectsFetched,
             endpoint,
@@ -260,6 +265,7 @@ export function useSnapshotRunner({
       balances: [],
       nextCursor: null,
       decimals: null,
+      assetKind: null,
       pagesFetched: 0,
       objectsFetched: 0,
       endpoint: null,

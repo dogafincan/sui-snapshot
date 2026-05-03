@@ -8,16 +8,25 @@ import { graphql, type ResultOf, type VariablesOf } from "@mysten/sui/graphql/sc
 
 import {
   normalizeSuiAddress,
+  type SnapshotAssetKind,
   type SnapshotPageBatchInput,
   type SnapshotPageBatchResult,
 } from "@/lib/sui-snapshot";
 
 const DEFAULT_ENDPOINT = "https://graphql.mainnet.sui.io/graphql";
 const REQUEST_TIMEOUT_MS = 45_000;
-const PAGE_SIZE = 50;
+const COIN_PAGE_SIZE = 50;
+const OBJECT_PAGE_SIZE = 10;
 const WORKERS_FREE_SUBREQUEST_LIMIT = 50;
 const RETRY_SUBREQUEST_HEADROOM = 10;
 const COIN_METADATA_SUBREQUESTS = 1;
+const OWNER_RESOLUTION_DEPTH = 3;
+const KIOSK_CREATION_TRANSACTION_BATCH_SIZE = 10;
+const PERSONAL_KIOSK_OWNER_MARKER_TYPE =
+  "0x0cb4bcc0560340eb1a1b929cabe56b33fc6449820ec8c1980d69bb98b649b802::personal_kiosk::OwnerMarker";
+const PERSONAL_KIOSK_OWNER_MARKER_BCS = "AA==";
+const KIOSK_TYPE_SUFFIX = "::kiosk::Kiosk";
+const KIOSK_OWNER_CAP_TYPE_SUFFIX = "::kiosk::KioskOwnerCap";
 const TRANSIENT_HTTP_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 const MAX_TRANSIENT_RETRIES = 3;
 const BASE_RETRY_DELAY_MS = 250;
@@ -51,10 +60,164 @@ const OBJECTS_QUERY = graphql(`
               address
             }
           }
+          ... on ObjectOwner {
+            address {
+              address
+            }
+          }
+          ... on Shared {
+            initialSharedVersion
+          }
+          ... on Immutable {
+            _
+          }
         }
         asMoveObject {
           contents {
             json
+          }
+        }
+      }
+    }
+  }
+`);
+
+const OWNER_OBJECTS_QUERY = graphql(`
+  query SnapshotObjectOwners(
+    $keys: [ObjectKey!]!
+    $personalKioskOwnerMarkerType: String!
+    $personalKioskOwnerMarkerBcs: Base64!
+  ) {
+    multiGetObjects(keys: $keys) {
+      address
+      owner {
+        __typename
+        ... on AddressOwner {
+          address {
+            address
+          }
+        }
+        ... on ConsensusAddressOwner {
+          address {
+            address
+          }
+        }
+        ... on ObjectOwner {
+          address {
+            address
+          }
+        }
+        ... on Shared {
+          initialSharedVersion
+        }
+        ... on Immutable {
+          _
+        }
+      }
+      asMoveObject {
+        contents {
+          type {
+            repr
+          }
+          json
+        }
+      }
+      personalKioskOwnerMarker: dynamicField(
+        name: { type: $personalKioskOwnerMarkerType, bcs: $personalKioskOwnerMarkerBcs }
+      ) {
+        value {
+          __typename
+          ... on MoveValue {
+            json
+            type {
+              repr
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+const KIOSK_OWNER_CAPS_QUERY = graphql(`
+  query SnapshotKioskOwnerCaps($digest: String!, $after: String) {
+    transactionEffects(digest: $digest) {
+      objectChanges(first: 100, after: $after) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          address
+          inputState {
+            address
+            owner {
+              __typename
+              ... on AddressOwner {
+                address {
+                  address
+                }
+              }
+              ... on ConsensusAddressOwner {
+                address {
+                  address
+                }
+              }
+              ... on ObjectOwner {
+                address {
+                  address
+                }
+              }
+              ... on Shared {
+                initialSharedVersion
+              }
+              ... on Immutable {
+                _
+              }
+            }
+            asMoveObject {
+              contents {
+                type {
+                  repr
+                }
+                json
+              }
+            }
+          }
+          outputState {
+            address
+            owner {
+              __typename
+              ... on AddressOwner {
+                address {
+                  address
+                }
+              }
+              ... on ConsensusAddressOwner {
+                address {
+                  address
+                }
+              }
+              ... on ObjectOwner {
+                address {
+                  address
+                }
+              }
+              ... on Shared {
+                initialSharedVersion
+              }
+              ... on Immutable {
+                _
+              }
+            }
+            asMoveObject {
+              contents {
+                type {
+                  repr
+                }
+                json
+              }
+            }
           }
         }
       }
@@ -76,19 +239,29 @@ interface GraphQLRuntimeConfig {
 
 type CoinMetadataResponse = ResultOf<typeof COIN_METADATA_QUERY>;
 type ObjectsResponse = ResultOf<typeof OBJECTS_QUERY>;
+type OwnerObjectsResponse = ResultOf<typeof OWNER_OBJECTS_QUERY>;
+type KioskOwnerCapsResponse = ResultOf<typeof KIOSK_OWNER_CAPS_QUERY>;
 type MoveJsonBalance = { balance?: number | string | null };
+type MoveJsonKioskOwnerCap = { for?: string | null };
 
 export function getSnapshotBatchPageBudget({
   hasCarriedDecimals,
+  assetKind = "coin",
   maxSubrequests = WORKERS_FREE_SUBREQUEST_LIMIT,
   retryHeadroom = RETRY_SUBREQUEST_HEADROOM,
 }: {
   hasCarriedDecimals: boolean;
+  assetKind?: SnapshotAssetKind;
   maxSubrequests?: number;
   retryHeadroom?: number;
 }) {
+  if (assetKind === "object") {
+    return 1;
+  }
+
   const metadataSubrequests = hasCarriedDecimals ? 0 : COIN_METADATA_SUBREQUESTS;
-  return Math.max(1, maxSubrequests - retryHeadroom - metadataSubrequests);
+  const availableSubrequests = maxSubrequests - retryHeadroom - metadataSubrequests;
+  return Math.max(1, availableSubrequests);
 }
 
 function isTransientHttpStatus(status: number) {
@@ -317,12 +490,23 @@ async function fetchCoinDecimals(
   );
 
   const decimals = metadata.coinMetadata?.decimals;
-  return typeof decimals === "number" && Number.isInteger(decimals) && decimals >= 0 ? decimals : 0;
+  return typeof decimals === "number" && Number.isInteger(decimals) && decimals >= 0
+    ? decimals
+    : null;
+}
+
+function getSnapshotObjectType(assetKind: SnapshotAssetKind, coinAddress: string) {
+  return assetKind === "coin" ? `0x2::coin::Coin<${coinAddress}>` : coinAddress;
+}
+
+function getSnapshotPageSize(assetKind: SnapshotAssetKind) {
+  return assetKind === "coin" ? COIN_PAGE_SIZE : OBJECT_PAGE_SIZE;
 }
 
 function fetchObjectsPage(
   client: SuiGraphQLClient,
-  coinAddress: string,
+  objectType: string,
+  first: number,
   cursor: string | null,
   signal: AbortSignal,
 ) {
@@ -330,8 +514,8 @@ function fetchObjectsPage(
     client,
     OBJECTS_QUERY,
     {
-      type: `0x2::coin::Coin<${coinAddress}>`,
-      first: PAGE_SIZE,
+      type: objectType,
+      first,
       after: cursor,
     },
     "Snapshot",
@@ -339,10 +523,446 @@ function fetchObjectsPage(
   );
 }
 
-function readCoinObjectBalance(
-  node: NonNullable<NonNullable<ObjectsResponse["objects"]>["nodes"]>[number],
+function fetchOwnerObjectsPage(client: SuiGraphQLClient, addresses: string[], signal: AbortSignal) {
+  return querySuiGraphQL<OwnerObjectsResponse, VariablesOf<typeof OWNER_OBJECTS_QUERY>>(
+    client,
+    OWNER_OBJECTS_QUERY,
+    {
+      keys: addresses.map((address) => ({ address })),
+      personalKioskOwnerMarkerType: PERSONAL_KIOSK_OWNER_MARKER_TYPE,
+      personalKioskOwnerMarkerBcs: PERSONAL_KIOSK_OWNER_MARKER_BCS,
+    },
+    "SnapshotObjectOwners",
+    signal,
+  );
+}
+
+interface KioskCreationTransactionNode {
+  objectAt?: {
+    previousTransaction?: {
+      digest?: string | null;
+    } | null;
+  } | null;
+}
+
+type KioskCreationTransactionsResponse = Record<string, KioskCreationTransactionNode | null>;
+
+function chunkArray<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
+async function fetchKioskCreationTransactions(
+  client: SuiGraphQLClient,
+  kiosks: Array<{ address: string; initialSharedVersion: number }>,
+  signal: AbortSignal,
 ) {
-  const ownerAddress = node.owner && "address" in node.owner ? node.owner.address?.address : null;
+  const creationTransactions = new Map<string, string>();
+
+  for (const kioskChunk of chunkArray(kiosks, KIOSK_CREATION_TRANSACTION_BATCH_SIZE)) {
+    const variableDefinitions: string[] = [];
+    const fields: string[] = [];
+    const variables: Record<string, string | number> = {};
+
+    kioskChunk.forEach((kiosk, index) => {
+      const addressVariable = `address${index}`;
+      const versionVariable = `version${index}`;
+      variableDefinitions.push(`$${addressVariable}: SuiAddress!`, `$${versionVariable}: UInt53!`);
+      variables[addressVariable] = kiosk.address;
+      variables[versionVariable] = kiosk.initialSharedVersion;
+      fields.push(`
+        kiosk${index}: object(address: $${addressVariable}) {
+          objectAt(version: $${versionVariable}) {
+            previousTransaction {
+              digest
+            }
+          }
+        }
+      `);
+    });
+
+    const query = `
+      query SnapshotKioskCreationTransactions(${variableDefinitions.join(", ")}) {
+        ${fields.join("\n")}
+      }
+    ` as unknown as GraphQLDocument<KioskCreationTransactionsResponse, Record<string, unknown>>;
+
+    const data = await querySuiGraphQL<KioskCreationTransactionsResponse, Record<string, unknown>>(
+      client,
+      query,
+      variables,
+      "SnapshotKioskCreationTransactions",
+      signal,
+    );
+
+    kioskChunk.forEach((kiosk, index) => {
+      const digest = data[`kiosk${index}`]?.objectAt?.previousTransaction?.digest;
+      if (digest) {
+        creationTransactions.set(kiosk.address, digest);
+      }
+    });
+  }
+
+  return creationTransactions;
+}
+
+function fetchKioskOwnerCapsPage(
+  client: SuiGraphQLClient,
+  digest: string,
+  cursor: string | null,
+  signal: AbortSignal,
+) {
+  return querySuiGraphQL<KioskOwnerCapsResponse, VariablesOf<typeof KIOSK_OWNER_CAPS_QUERY>>(
+    client,
+    KIOSK_OWNER_CAPS_QUERY,
+    {
+      digest,
+      after: cursor,
+    },
+    "SnapshotKioskOwnerCaps",
+    signal,
+  );
+}
+
+async function resolveSnapshotAsset(
+  client: SuiGraphQLClient,
+  input: SnapshotPageBatchInput,
+  signal: AbortSignal,
+): Promise<{ assetKind: SnapshotAssetKind; decimals: number }> {
+  if (input.assetKind === "object") {
+    return { assetKind: "object", decimals: 0 };
+  }
+
+  if (input.decimals != null) {
+    return { assetKind: "coin", decimals: input.decimals };
+  }
+
+  const decimals = await fetchCoinDecimals(client, input.coinAddress, signal);
+
+  if (decimals === null) {
+    return { assetKind: "object", decimals: 0 };
+  }
+
+  return { assetKind: "coin", decimals };
+}
+
+type ObjectNode = NonNullable<NonNullable<ObjectsResponse["objects"]>["nodes"]>[number];
+type OwnerObjectNode = NonNullable<NonNullable<OwnerObjectsResponse["multiGetObjects"]>[number]>;
+type KioskOwnerCapChangeNode = NonNullable<
+  NonNullable<NonNullable<KioskOwnerCapsResponse["transactionEffects"]>["objectChanges"]>["nodes"]
+>[number];
+type SnapshotOwner = NonNullable<ObjectNode["owner"]> | NonNullable<OwnerObjectNode["owner"]>;
+type MoveObjectContainer = {
+  asMoveObject?: {
+    contents?: {
+      type?: {
+        repr?: string | null;
+      } | null;
+      json?: unknown;
+    } | null;
+  } | null;
+};
+
+function readAddressOwner(owner: SnapshotOwner | null | undefined) {
+  if (!owner || !("address" in owner)) {
+    return null;
+  }
+
+  if (owner.__typename !== "AddressOwner" && owner.__typename !== "ConsensusAddressOwner") {
+    return null;
+  }
+
+  return owner.address?.address ? normalizeSuiAddress(owner.address.address) : null;
+}
+
+function readObjectOwnerAddress(owner: SnapshotOwner | null | undefined) {
+  if (!owner || owner.__typename !== "ObjectOwner" || !("address" in owner)) {
+    return null;
+  }
+
+  return owner.address?.address ? normalizeSuiAddress(owner.address.address) : null;
+}
+
+function readMoveObjectType(node: MoveObjectContainer) {
+  return node.asMoveObject?.contents?.type?.repr ?? null;
+}
+
+function readMoveObjectAddress(node: { address?: string | null }) {
+  return node.address ? normalizeSuiAddress(node.address) : null;
+}
+
+function isKioskObject(node: MoveObjectContainer) {
+  return readMoveObjectType(node)?.endsWith(KIOSK_TYPE_SUFFIX) ?? false;
+}
+
+function isKioskOwnerCapObject(node: MoveObjectContainer) {
+  return readMoveObjectType(node)?.endsWith(KIOSK_OWNER_CAP_TYPE_SUFFIX) ?? false;
+}
+
+function readPersonalKioskOwner(node: OwnerObjectNode) {
+  const marker = node.personalKioskOwnerMarker?.value;
+
+  if (marker?.__typename !== "MoveValue") {
+    return null;
+  }
+
+  if (marker.type?.repr !== "address" || typeof marker.json !== "string") {
+    return null;
+  }
+
+  return normalizeSuiAddress(marker.json);
+}
+
+function readSharedKiosk(node: OwnerObjectNode) {
+  if (node.owner?.__typename !== "Shared") {
+    return null;
+  }
+
+  if (!isKioskObject(node)) {
+    return null;
+  }
+
+  const address = readMoveObjectAddress(node);
+  const { initialSharedVersion } = node.owner;
+
+  if (
+    !address ||
+    typeof initialSharedVersion !== "number" ||
+    !Number.isInteger(initialSharedVersion)
+  ) {
+    return null;
+  }
+
+  return { address, initialSharedVersion };
+}
+
+function readKioskOwnerCapKioskAddress(node: MoveObjectContainer) {
+  if (!isKioskOwnerCapObject(node)) {
+    return null;
+  }
+
+  const kioskAddress = (node.asMoveObject?.contents?.json as MoveJsonKioskOwnerCap | undefined)
+    ?.for;
+
+  return typeof kioskAddress === "string" ? normalizeSuiAddress(kioskAddress) : null;
+}
+
+function readKioskOwnerCapChangeState(change: KioskOwnerCapChangeNode) {
+  return change.outputState ?? change.inputState ?? null;
+}
+
+async function fetchKioskOwnerCapAddressesFromTransactions(
+  client: SuiGraphQLClient,
+  transactionDigests: string[],
+  targetKioskAddresses: Set<string>,
+  signal: AbortSignal,
+) {
+  const capAddressesByKiosk = new Map<string, string>();
+
+  for (const digest of new Set(transactionDigests)) {
+    let cursor: string | null = null;
+
+    while (true) {
+      const data = await fetchKioskOwnerCapsPage(client, digest, cursor, signal);
+      const connection = data.transactionEffects?.objectChanges;
+      if (!connection) {
+        throw new Error("Missing transactionEffects.objectChanges in GraphQL response.");
+      }
+
+      for (const change of connection.nodes ?? []) {
+        const state = readKioskOwnerCapChangeState(change);
+        if (!state) {
+          continue;
+        }
+
+        const kioskAddress = readKioskOwnerCapKioskAddress(state);
+        if (!kioskAddress || !targetKioskAddresses.has(kioskAddress)) {
+          continue;
+        }
+
+        const capAddress = readMoveObjectAddress(state) ?? readMoveObjectAddress(change);
+        if (!capAddress) {
+          continue;
+        }
+
+        capAddressesByKiosk.set(kioskAddress, capAddress);
+      }
+
+      if (!connection.pageInfo?.hasNextPage) {
+        break;
+      }
+
+      cursor = connection.pageInfo.endCursor ?? null;
+      if (!cursor) {
+        throw new Error("Missing objectChanges.pageInfo.endCursor while more results remain.");
+      }
+    }
+  }
+
+  return capAddressesByKiosk;
+}
+
+async function resolveStandardKioskOwners(
+  client: SuiGraphQLClient,
+  kiosks: Array<{ address: string; initialSharedVersion: number }>,
+  signal: AbortSignal,
+) {
+  const kioskOwners = new Map<string, string>();
+  const uniqueKiosks = Array.from(new Map(kiosks.map((kiosk) => [kiosk.address, kiosk])).values());
+  const creationTransactions = await fetchKioskCreationTransactions(client, uniqueKiosks, signal);
+  const targetKioskAddresses = new Set(uniqueKiosks.map((kiosk) => kiosk.address));
+  const capAddressesByKiosk = await fetchKioskOwnerCapAddressesFromTransactions(
+    client,
+    Array.from(creationTransactions.values()),
+    targetKioskAddresses,
+    signal,
+  );
+  const capAddresses = Array.from(new Set(capAddressesByKiosk.values()));
+
+  if (capAddresses.length === 0) {
+    return kioskOwners;
+  }
+
+  const capObjects = await fetchOwnerObjectsPage(client, capAddresses, signal);
+  for (const capObject of capObjects.multiGetObjects ?? []) {
+    if (!capObject) {
+      continue;
+    }
+
+    const capAddress = readMoveObjectAddress(capObject);
+    const kioskAddress = readKioskOwnerCapKioskAddress(capObject);
+    const ownerAddress = readAddressOwner(capObject.owner);
+
+    if (!capAddress || !kioskAddress || !ownerAddress) {
+      continue;
+    }
+
+    if (capAddressesByKiosk.get(kioskAddress) !== capAddress) {
+      continue;
+    }
+
+    kioskOwners.set(kioskAddress, ownerAddress);
+  }
+
+  return kioskOwners;
+}
+
+function addPendingOwner(
+  pending: Map<string, Set<string>>,
+  currentObjectAddress: string,
+  originalObjectAddresses: Iterable<string>,
+) {
+  const normalizedCurrentObjectAddress = normalizeSuiAddress(currentObjectAddress);
+  const existing = pending.get(normalizedCurrentObjectAddress) ?? new Set<string>();
+
+  for (const originalObjectAddress of originalObjectAddresses) {
+    existing.add(normalizeSuiAddress(originalObjectAddress));
+  }
+
+  pending.set(normalizedCurrentObjectAddress, existing);
+}
+
+async function resolveObjectOwnerAddresses(
+  client: SuiGraphQLClient,
+  objectOwnerAddresses: string[],
+  signal: AbortSignal,
+) {
+  const resolved = new Map<string, string>();
+  let pending = new Map<string, Set<string>>();
+
+  for (const objectOwnerAddress of objectOwnerAddresses) {
+    addPendingOwner(pending, objectOwnerAddress, [objectOwnerAddress]);
+  }
+
+  for (let depth = 0; pending.size > 0 && depth < OWNER_RESOLUTION_DEPTH; depth += 1) {
+    const currentAddresses = Array.from(pending.keys());
+    const currentOrigins = pending;
+    const nextPending = new Map<string, Set<string>>();
+    const standardKiosks = new Map<string, { address: string; initialSharedVersion: number }>();
+    const standardKioskOrigins = new Map<string, Set<string>>();
+    const ownerObjects = await fetchOwnerObjectsPage(client, currentAddresses, signal);
+
+    for (const ownerObject of ownerObjects.multiGetObjects ?? []) {
+      if (!ownerObject?.address) {
+        continue;
+      }
+
+      const currentAddress = normalizeSuiAddress(ownerObject.address);
+      const origins = currentOrigins.get(currentAddress);
+      if (!origins) {
+        continue;
+      }
+
+      const directOwner = readAddressOwner(ownerObject.owner);
+
+      if (directOwner) {
+        for (const origin of origins) {
+          resolved.set(origin, directOwner);
+        }
+        continue;
+      }
+
+      const sharedKiosk = readSharedKiosk(ownerObject);
+      if (sharedKiosk) {
+        const personalKioskOwner = readPersonalKioskOwner(ownerObject);
+        if (personalKioskOwner) {
+          for (const origin of origins) {
+            resolved.set(origin, personalKioskOwner);
+          }
+          continue;
+        }
+
+        standardKiosks.set(sharedKiosk.address, sharedKiosk);
+        const existingOrigins = standardKioskOrigins.get(sharedKiosk.address) ?? new Set<string>();
+        for (const origin of origins) {
+          existingOrigins.add(origin);
+        }
+        standardKioskOrigins.set(sharedKiosk.address, existingOrigins);
+        continue;
+      }
+
+      const nextObjectOwner = readObjectOwnerAddress(ownerObject.owner);
+      if (nextObjectOwner) {
+        addPendingOwner(nextPending, nextObjectOwner, origins);
+      }
+    }
+
+    if (standardKiosks.size > 0) {
+      const kioskOwners = await resolveStandardKioskOwners(
+        client,
+        Array.from(standardKiosks.values()),
+        signal,
+      );
+
+      for (const [kioskAddress, ownerAddress] of kioskOwners) {
+        const origins = standardKioskOrigins.get(kioskAddress);
+        if (!origins) {
+          continue;
+        }
+
+        for (const origin of origins) {
+          resolved.set(origin, ownerAddress);
+        }
+      }
+    }
+
+    pending = nextPending;
+  }
+
+  if (resolved.size < objectOwnerAddresses.length) {
+    throw new Error("Unable to resolve all object-owned NFT holders.");
+  }
+
+  return resolved;
+}
+
+function readCoinObjectBalance(node: ObjectNode) {
+  const ownerAddress = readAddressOwner(node.owner);
   if (!ownerAddress) {
     throw new Error("Encountered a coin object without an address owner.");
   }
@@ -354,9 +974,52 @@ function readCoinObjectBalance(
   }
 
   return {
-    address: normalizeSuiAddress(ownerAddress),
+    address: ownerAddress,
     rawBalance: BigInt(String(rawBalanceValue)).toString(),
   };
+}
+
+async function readObjectCollectionBalances(
+  client: SuiGraphQLClient,
+  nodes: ObjectNode[],
+  signal: AbortSignal,
+) {
+  const directBalances: Array<{ address: string; rawBalance: string }> = [];
+  const objectOwnedNodes: Array<{ objectOwnerAddress: string }> = [];
+
+  for (const node of nodes) {
+    const directOwner = readAddressOwner(node.owner);
+    if (directOwner) {
+      directBalances.push({ address: directOwner, rawBalance: "1" });
+      continue;
+    }
+
+    const objectOwnerAddress = readObjectOwnerAddress(node.owner);
+    if (objectOwnerAddress) {
+      objectOwnedNodes.push({ objectOwnerAddress });
+      continue;
+    }
+
+    throw new Error("Encountered an NFT object without a resolvable owner.");
+  }
+
+  if (objectOwnedNodes.length === 0) {
+    return directBalances;
+  }
+
+  const resolvedOwners = await resolveObjectOwnerAddresses(
+    client,
+    objectOwnedNodes.map((node) => node.objectOwnerAddress),
+    signal,
+  );
+
+  return [
+    ...directBalances,
+    ...objectOwnedNodes.map((node) => ({
+      address: resolvedOwners.get(node.objectOwnerAddress) as string,
+      rawBalance: "1",
+    })),
+  ];
 }
 
 export async function fetchSuiHolderSnapshotBatch(
@@ -368,19 +1031,23 @@ export async function fetchSuiHolderSnapshotBatch(
 
   try {
     const client = createSuiGraphQLClient(runtime.endpoint);
-    const hasCarriedDecimals = input.decimals != null;
+    const asset = await resolveSnapshotAsset(client, input, controller.signal);
+    const objectType = getSnapshotObjectType(asset.assetKind, input.coinAddress);
+    const hasCarriedDecimals = input.decimals != null || input.assetKind === "object";
     const pagesPerBatch = getSnapshotBatchPageBudget({
       hasCarriedDecimals,
+      assetKind: asset.assetKind,
       maxSubrequests: runtime.maxSubrequests,
       retryHeadroom: runtime.retryHeadroom,
     });
-    const decimalsPromise = hasCarriedDecimals
-      ? Promise.resolve(input.decimals as number)
-      : fetchCoinDecimals(client, input.coinAddress, controller.signal);
-    const [decimals, firstPage] = await Promise.all([
-      decimalsPromise,
-      fetchObjectsPage(client, input.coinAddress, input.cursor, controller.signal),
-    ]);
+    const pageSize = getSnapshotPageSize(asset.assetKind);
+    const firstPage = await fetchObjectsPage(
+      client,
+      objectType,
+      pageSize,
+      input.cursor,
+      controller.signal,
+    );
     const balances = new Map<string, bigint>();
     let cursor = input.cursor;
     let nextCursor: string | null = input.cursor;
@@ -396,8 +1063,12 @@ export async function fetchSuiHolderSnapshotBatch(
       }
 
       const nodes = connection.nodes ?? [];
-      for (const node of nodes) {
-        const { address, rawBalance } = readCoinObjectBalance(node);
+      const pageBalances =
+        asset.assetKind === "coin"
+          ? nodes.map((node) => readCoinObjectBalance(node))
+          : await readObjectCollectionBalances(client, nodes, controller.signal);
+
+      for (const { address, rawBalance } of pageBalances) {
         balances.set(address, (balances.get(address) ?? 0n) + BigInt(rawBalance));
       }
 
@@ -420,7 +1091,13 @@ export async function fetchSuiHolderSnapshotBatch(
         break;
       }
 
-      snapshotPage = await fetchObjectsPage(client, input.coinAddress, cursor, controller.signal);
+      snapshotPage = await fetchObjectsPage(
+        client,
+        objectType,
+        pageSize,
+        cursor,
+        controller.signal,
+      );
     }
 
     return {
@@ -434,7 +1111,8 @@ export async function fetchSuiHolderSnapshotBatch(
       })),
       cursor: input.cursor,
       nextCursor: reachedLastPage ? null : nextCursor,
-      decimals,
+      decimals: asset.decimals,
+      assetKind: asset.assetKind,
       pagesFetched,
       objectsFetched,
     };

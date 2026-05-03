@@ -20,6 +20,7 @@ function snapshotBatch(overrides?: Partial<SnapshotPageBatchResult>): SnapshotPa
     cursor: null,
     nextCursor: null,
     decimals: 0,
+    assetKind: "coin",
     pagesFetched: 1,
     objectsFetched: 1,
     ...overrides,
@@ -38,7 +39,7 @@ function deferredSnapshotBatch() {
 }
 
 function enterCoinAddress(value = PANS_COIN_TYPE) {
-  fireEvent.change(screen.getByLabelText("Coin type"), {
+  fireEvent.change(screen.getByLabelText("Sui type"), {
     target: { value },
   });
 }
@@ -48,13 +49,13 @@ describe("SnapshotWorkbench", () => {
     cleanup();
   });
 
-  it("renders a concise initial form with a descriptive coin type placeholder", () => {
+  it("renders a concise initial form with a descriptive Sui type placeholder", () => {
     const runSnapshotBatch = vi.fn();
     const { container } = render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
-    const coinAddressInput = screen.getByLabelText("Coin type") as HTMLInputElement;
+    const coinAddressInput = screen.getByLabelText("Sui type") as HTMLInputElement;
     const appTitle = screen.getByRole("heading", { level: 1, name: "Sui Snapshot" });
     const appSubtitle = screen.getByText(
-      "Generate a ranked holder list for a Sui coin type and export it as CSV.",
+      "Generate a ranked holder list for a Sui coin or NFT collection and export it as CSV.",
     );
     const appLogo = container.querySelector('[data-slot="app-logo"]');
     const appLogoForLightMode = appLogo?.querySelector('[data-slot="app-logo-for-light-mode"]');
@@ -67,7 +68,7 @@ describe("SnapshotWorkbench", () => {
     expect(appTitle).toBeTruthy();
     expect(appSubtitle).toBeTruthy();
     expect(coinAddressInput.value).toBe("");
-    expect(coinAddressInput.placeholder).toBe("Enter a Sui coin type");
+    expect(coinAddressInput.placeholder).toBe("Enter a Sui type");
     expect(screen.queryByText("Snapshot parameters")).toBeNull();
     expect(screen.queryByText("Inputs are normalized before the request is sent.")).toBeNull();
     expect(screen.queryByText("Ready to run")).toBeNull();
@@ -121,39 +122,39 @@ describe("SnapshotWorkbench", () => {
     ).not.toContain("min-w-[32rem]");
   });
 
-  it("shows a required coin type error for empty submissions and clears it on input", async () => {
+  it("shows a required Sui type error for empty submissions and clears it on input", async () => {
     const runSnapshotBatch = vi.fn();
     const { container } = render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
-    expect(await screen.findByText("Coin type required")).toBeTruthy();
-    expect(screen.getByText("Enter a Sui coin type.")).toBeTruthy();
-    expect(screen.queryByText("Invalid coin type format")).toBeNull();
+    expect(await screen.findByText("Sui type required")).toBeTruthy();
+    expect(screen.getByText("Enter a Sui type.")).toBeTruthy();
+    expect(screen.queryByText("Invalid Sui type format")).toBeNull();
     const validationAlertIcon = container.querySelector('[data-lucide="validation-alert"]');
 
     expect(validationAlertIcon?.getAttribute("class")).toContain("lucide-circle-alert");
     expect(validationAlertIcon?.getAttribute("class")).not.toContain("lucide-triangle-alert");
 
-    fireEvent.change(screen.getByLabelText("Coin type"), {
+    fireEvent.change(screen.getByLabelText("Sui type"), {
       target: { value: "0x2::sui::SUI" },
     });
 
     await waitFor(() => {
-      expect(screen.queryByText("Coin type required")).toBeNull();
+      expect(screen.queryByText("Sui type required")).toBeNull();
     });
   });
 
-  it("shows a format validation error for malformed coin types", async () => {
+  it("shows a format validation error for malformed Sui types", async () => {
     const runSnapshotBatch = vi.fn();
     render(<SnapshotWorkbench runSnapshotBatch={runSnapshotBatch} />);
 
     enterCoinAddress("not-a-coin");
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
-    expect(await screen.findByText("Invalid coin type format")).toBeTruthy();
-    expect(screen.getByText("Enter a coin type in 0xPACKAGE::MODULE::TOKEN format.")).toBeTruthy();
-    expect(screen.queryByText("Coin type required")).toBeNull();
+    expect(await screen.findByText("Invalid Sui type format")).toBeTruthy();
+    expect(screen.getByText("Enter a Sui type in 0xPACKAGE::MODULE::TYPE format.")).toBeTruthy();
+    expect(screen.queryByText("Sui type required")).toBeNull();
     expect(
       document.querySelector('[data-lucide="validation-alert"]')?.getAttribute("class"),
     ).toContain("lucide-circle-alert");
@@ -188,7 +189,7 @@ describe("SnapshotWorkbench", () => {
 
     expect(await screen.findByText("1 holder across 1 page.")).toBeTruthy();
 
-    fireEvent.change(screen.getByLabelText("Coin type"), {
+    fireEvent.change(screen.getByLabelText("Sui type"), {
       target: { value: "0x3::foo::BAR" },
     });
 
@@ -229,7 +230,7 @@ describe("SnapshotWorkbench", () => {
       18,
     );
     expect(screen.queryByText("Snapshot results")).toBeNull();
-    expect(screen.queryByText("Coin type:")).toBeNull();
+    expect(screen.queryByText("Sui type:")).toBeNull();
     expect(screen.queryByRole("button", { name: "Download CSV" })).toBeNull();
 
     deferredBatch.resolve(snapshotBatch());
@@ -247,7 +248,7 @@ describe("SnapshotWorkbench", () => {
 
     expect(await screen.findByText("1 holder across 1 page.")).toBeTruthy();
     expect(screen.queryByText("Snapshot results")).toBeNull();
-    expect(screen.queryByText("Coin type:")).toBeNull();
+    expect(screen.queryByText("Sui type:")).toBeNull();
     expect(screen.queryByText(coinAddress)).toBeNull();
     expect(screen.queryByText("Holder snapshot")).toBeNull();
     expect(screen.getByRole("button", { name: "Download CSV" }).className).toContain("w-full");
@@ -274,7 +275,7 @@ describe("SnapshotWorkbench", () => {
     enterCoinAddress();
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
-    expect(await screen.findByText("1 coin object scanned")).toBeTruthy();
+    expect(await screen.findByText("1 object scanned")).toBeTruthy();
     expect(container.querySelector('[data-lucide="cancel-snapshot"]')).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel snapshot" }));
@@ -306,7 +307,7 @@ describe("SnapshotWorkbench", () => {
     enterCoinAddress();
     fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
 
-    expect(await screen.findByText("1 coin object scanned")).toBeTruthy();
+    expect(await screen.findByText("1 object scanned")).toBeTruthy();
     await waitFor(
       () => {
         expect(runSnapshotBatch).toHaveBeenCalledTimes(2);

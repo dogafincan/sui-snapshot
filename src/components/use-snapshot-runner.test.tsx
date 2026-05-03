@@ -19,6 +19,7 @@ function snapshotBatch(overrides?: Partial<SnapshotPageBatchResult>): SnapshotPa
     cursor: null,
     nextCursor: null,
     decimals: 0,
+    assetKind: "coin",
     pagesFetched: 1,
     objectsFetched: 1,
     ...overrides,
@@ -73,6 +74,71 @@ describe("useSnapshotRunner", () => {
     ]);
     expect(result.current.isSubmitting).toBe(false);
     expect(result.current.snapshotProgress).toBeNull();
+    expect(notifySuccess).toHaveBeenCalledWith("Loaded 2 holders.");
+    expect(notifyError).not.toHaveBeenCalled();
+  });
+
+  it("carries NFT collection mode across later batches", async () => {
+    const notifySuccess = vi.fn();
+    const notifyError = vi.fn();
+    const nftType =
+      "0x6eabd37ba3e9915b8e0490c4454532909a1282f6dfa6898eb6f3bee7ae58b453::random_panda_club::Nft";
+    const normalizedNftType = normalizeCoinType(nftType);
+    const runSnapshotBatch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        snapshotBatch({
+          meta: {
+            endpoint: "https://graphql.mainnet.sui.io/graphql",
+            coinAddress: normalizedNftType,
+          },
+          balances: [{ address: ADDRESS_A, rawBalance: "2" }],
+          assetKind: "object",
+          nextCursor: "cursor-1",
+        }),
+      )
+      .mockResolvedValueOnce(
+        snapshotBatch({
+          meta: {
+            endpoint: "https://graphql.mainnet.sui.io/graphql",
+            coinAddress: normalizedNftType,
+          },
+          balances: [{ address: ADDRESS_B, rawBalance: "1" }],
+          assetKind: "object",
+          cursor: "cursor-1",
+          nextCursor: null,
+        }),
+      );
+
+    const { result } = renderHook(() =>
+      useSnapshotRunner({
+        batchPauseMs: 0,
+        notifyError,
+        notifySuccess,
+        runSnapshotBatch,
+      }),
+    );
+
+    act(() => {
+      result.current.changeCoinAddress(nftType);
+    });
+
+    await act(async () => {
+      await result.current.submitSnapshot();
+    });
+
+    expect(runSnapshotBatch).toHaveBeenNthCalledWith(2, {
+      data: {
+        coinAddress: normalizedNftType,
+        cursor: "cursor-1",
+        decimals: 0,
+        assetKind: "object",
+      },
+    });
+    expect(result.current.snapshot?.rows).toEqual([
+      { rank: 1, address: ADDRESS_A, balance: "2" },
+      { rank: 2, address: ADDRESS_B, balance: "1" },
+    ]);
     expect(notifySuccess).toHaveBeenCalledWith("Loaded 2 holders.");
     expect(notifyError).not.toHaveBeenCalled();
   });
