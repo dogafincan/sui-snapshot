@@ -229,6 +229,12 @@ browser automation when practical:
 - narrow and large widths
 - light and dark system color schemes
 
+When browser automation is needed and both options can cover the task, prefer
+`browser-use:browser` over `playwright-interactive`. Use
+`playwright-interactive` only for workflows that specifically need its separate
+persistent Playwright/Electron session model or when `browser-use:browser` is
+not available.
+
 If you change Worker bindings or env usage, also run:
 
 - `vp run cf-typegen`
