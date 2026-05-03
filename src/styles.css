@@ -80,6 +80,13 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --snapshot-hero-gradient-height: 600px;
+  --snapshot-hero-mesh-pale-blue: #bbc8fe;
+  --snapshot-hero-mesh-cyan: #79ccf6;
+  --snapshot-hero-mesh-teal: #76c2db;
+  --snapshot-hero-mesh-sky: #93c7e7;
+  --snapshot-hero-mesh-periwinkle: #86a3fc;
+  --snapshot-hero-mesh-lavender: #c5c0fd;
 }
 
 .dark {
@@ -160,9 +167,64 @@
   }
   html {
     @apply font-sans;
+    min-height: 100%;
+    background: var(--background);
   }
   body {
     @apply min-h-screen antialiased bg-background text-foreground;
+    position: relative;
+    isolation: isolate;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: -1;
+    height: var(--snapshot-hero-gradient-height);
+    pointer-events: none;
+    background:
+      linear-gradient(to bottom, transparent 0%, transparent 58%, var(--background) 100%),
+      radial-gradient(
+        ellipse 30% 22% at 50% 16%,
+        color-mix(in oklab, white 72%, var(--snapshot-hero-mesh-sky)) 0%,
+        color-mix(in oklab, white 38%, var(--snapshot-hero-mesh-pale-blue)) 36%,
+        transparent 72%
+      ),
+      radial-gradient(
+        ellipse 72% 44% at 48% 8%,
+        color-mix(in oklab, white 24%, var(--snapshot-hero-mesh-pale-blue)) 0%,
+        color-mix(in oklab, transparent 22%, var(--snapshot-hero-mesh-sky)) 52%,
+        transparent 82%
+      ),
+      radial-gradient(
+        ellipse 56% 44% at 15% 44%,
+        color-mix(in oklab, transparent 12%, var(--snapshot-hero-mesh-cyan)) 0%,
+        transparent 68%
+      ),
+      radial-gradient(
+        ellipse 54% 40% at 78% 42%,
+        color-mix(in oklab, transparent 16%, var(--snapshot-hero-mesh-periwinkle)) 0%,
+        transparent 66%
+      ),
+      radial-gradient(
+        ellipse 48% 42% at 74% 82%,
+        color-mix(in oklab, transparent 22%, var(--snapshot-hero-mesh-lavender)) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 42% 46% at 46% 60%,
+        color-mix(in oklab, transparent 28%, var(--snapshot-hero-mesh-teal)) 0%,
+        transparent 72%
+      ),
+      linear-gradient(
+        120deg,
+        color-mix(in oklab, white 18%, var(--snapshot-hero-mesh-pale-blue)) 0%,
+        color-mix(in oklab, white 8%, var(--snapshot-hero-mesh-cyan)) 40%,
+        color-mix(in oklab, white 14%, var(--snapshot-hero-mesh-lavender)) 100%
+      );
+    transform: scale(1.04);
+    transform-origin: top center;
   }
   code {
     @apply font-mono;
