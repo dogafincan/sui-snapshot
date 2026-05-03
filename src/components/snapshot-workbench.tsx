@@ -120,7 +120,7 @@ export function SnapshotWorkbench({ runSnapshotBatch }: { runSnapshotBatch: RunS
 
   return (
     <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-full flex-col gap-8 px-3 py-10 sm:max-w-6xl sm:px-6 lg:px-8">
-      <header className="flex flex-col items-center gap-4 text-center">
+      <header className="flex flex-col items-center gap-4 text-center text-[oklch(0.145_0_0)]">
         <div
           data-slot="app-logo"
           className="relative size-15 shrink-0 overflow-hidden"

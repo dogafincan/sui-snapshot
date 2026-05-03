@@ -61,7 +61,9 @@ describe("SnapshotWorkbench", () => {
     const appSubtitleContinuation = appSubtitle?.querySelector("span");
     const appLogoImage = appLogo?.querySelector('[data-slot="app-logo-image"]');
 
-    expect(appHeader?.className).toBe("flex flex-col items-center gap-4 text-center");
+    expect(appHeader?.className).toBe(
+      "flex flex-col items-center gap-4 text-center text-[oklch(0.145_0_0)]",
+    );
     expect(appHeader?.className).not.toContain("md:");
     expect(appLogo?.className).toBe("relative size-15 shrink-0 overflow-hidden");
     expect(appTitleBlock?.className).toBe("flex min-w-0 flex-col gap-2");
