@@ -32,8 +32,6 @@ describe("useSnapshotRunner", () => {
   });
 
   it("assembles a snapshot across batches", async () => {
-    const notifySuccess = vi.fn();
-    const notifyError = vi.fn();
     const runSnapshotBatch = vi
       .fn()
       .mockResolvedValueOnce(
@@ -53,8 +51,6 @@ describe("useSnapshotRunner", () => {
     const { result } = renderHook(() =>
       useSnapshotRunner({
         batchPauseMs: 0,
-        notifyError,
-        notifySuccess,
         runSnapshotBatch,
       }),
     );
@@ -74,13 +70,9 @@ describe("useSnapshotRunner", () => {
     ]);
     expect(result.current.isSubmitting).toBe(false);
     expect(result.current.snapshotProgress).toBeNull();
-    expect(notifySuccess).toHaveBeenCalledWith("Loaded 2 holders.");
-    expect(notifyError).not.toHaveBeenCalled();
   });
 
   it("carries NFT collection mode across later batches", async () => {
-    const notifySuccess = vi.fn();
-    const notifyError = vi.fn();
     const nftType =
       "0x6eabd37ba3e9915b8e0490c4454532909a1282f6dfa6898eb6f3bee7ae58b453::random_panda_club::Nft";
     const normalizedNftType = normalizeCoinType(nftType);
@@ -113,8 +105,6 @@ describe("useSnapshotRunner", () => {
     const { result } = renderHook(() =>
       useSnapshotRunner({
         batchPauseMs: 0,
-        notifyError,
-        notifySuccess,
         runSnapshotBatch,
       }),
     );
@@ -139,19 +129,13 @@ describe("useSnapshotRunner", () => {
       { rank: 1, address: ADDRESS_A, balance: "2" },
       { rank: 2, address: ADDRESS_B, balance: "1" },
     ]);
-    expect(notifySuccess).toHaveBeenCalledWith("Loaded 2 holders.");
-    expect(notifyError).not.toHaveBeenCalled();
   });
 
   it("hides implementation details from request errors", async () => {
-    const notifySuccess = vi.fn();
-    const notifyError = vi.fn();
     const runSnapshotBatch = vi.fn().mockResolvedValue(undefined);
 
     const { result } = renderHook(() =>
       useSnapshotRunner({
-        notifyError,
-        notifySuccess,
         runSnapshotBatch,
       }),
     );
@@ -169,10 +153,6 @@ describe("useSnapshotRunner", () => {
       description: "Something went wrong while generating the snapshot. Please try again.",
     });
     expect(result.current.requestError?.description).not.toContain("batch");
-    expect(notifyError).toHaveBeenCalledWith(
-      "Something went wrong while generating the snapshot. Please try again.",
-    );
-    expect(notifySuccess).not.toHaveBeenCalled();
   });
 
   it("uses user-facing copy for common snapshot request failures", async () => {
@@ -200,14 +180,10 @@ describe("useSnapshotRunner", () => {
     ];
 
     for (const { error, description } of cases) {
-      const notifySuccess = vi.fn();
-      const notifyError = vi.fn();
       const runSnapshotBatch = vi.fn().mockRejectedValue(error);
 
       const { result, unmount } = renderHook(() =>
         useSnapshotRunner({
-          notifyError,
-          notifySuccess,
           runSnapshotBatch,
         }),
       );
@@ -227,16 +203,12 @@ describe("useSnapshotRunner", () => {
       expect(result.current.requestError?.description).not.toMatch(
         /GraphQL|HTTP|Missing data|internal error|reference|batch/i,
       );
-      expect(notifyError).toHaveBeenCalledWith(description);
-      expect(notifySuccess).not.toHaveBeenCalled();
 
       unmount();
     }
   });
 
   it("pauses a multi-batch snapshot when cancellation is requested between batches", async () => {
-    const notifySuccess = vi.fn();
-    const notifyError = vi.fn();
     const runSnapshotBatch = vi.fn().mockResolvedValueOnce(
       snapshotBatch({
         nextCursor: "cursor-1",
@@ -246,8 +218,6 @@ describe("useSnapshotRunner", () => {
     const { result } = renderHook(() =>
       useSnapshotRunner({
         batchPauseMs: 1_000,
-        notifyError,
-        notifySuccess,
         runSnapshotBatch,
       }),
     );
@@ -276,7 +246,5 @@ describe("useSnapshotRunner", () => {
     expect(result.current.isSubmitting).toBe(false);
     expect(result.current.isCancelling).toBe(false);
     expect(result.current.snapshot).toBeNull();
-    expect(notifySuccess).not.toHaveBeenCalled();
-    expect(notifyError).not.toHaveBeenCalled();
   });
 });

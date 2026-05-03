@@ -1,5 +1,4 @@
 import { startTransition, useRef, useState } from "react";
-import { toast } from "sonner";
 
 import {
   buildSnapshotDownload,
@@ -48,8 +47,6 @@ export interface RequestError {
 interface UseSnapshotRunnerOptions {
   runSnapshotBatch: RunSnapshotBatch;
   batchPauseMs?: number;
-  notifySuccess?: (message: string) => void;
-  notifyError?: (message: string) => void;
 }
 
 const DEFAULT_ENDPOINT = "https://graphql.mainnet.sui.io/graphql";
@@ -139,8 +136,6 @@ function downloadSnapshotFile(snapshot: SnapshotResult) {
 export function useSnapshotRunner({
   runSnapshotBatch,
   batchPauseMs = DEFAULT_BATCH_PAUSE_MS,
-  notifySuccess = toast.success,
-  notifyError = toast.error,
 }: UseSnapshotRunnerOptions) {
   const [coinAddress, setCoinAddress] = useState("");
   const [snapshot, setSnapshot] = useState<SnapshotResult | null>(null);
@@ -246,13 +241,11 @@ export function useSnapshotRunner({
       startTransition(() => {
         setSnapshot(nextSnapshot);
       });
-      notifySuccess(`Loaded ${formatInteger(nextSnapshot.meta.holderCount)} holders.`);
     } catch (error) {
       const nextRequestError = getRequestError(error);
       startTransition(() => {
         setRequestError(nextRequestError);
       });
-      notifyError(nextRequestError.description);
     } finally {
       cancelRequestedRef.current = false;
       cancelWaitRef.current = null;
@@ -317,7 +310,6 @@ export function useSnapshotRunner({
     }
 
     downloadSnapshotFile(snapshot);
-    notifySuccess("CSV download started.");
   }
 
   return {
