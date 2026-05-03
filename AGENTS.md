@@ -73,6 +73,7 @@ workspace.
 - `src/routes/index.tsx`: app entry route
 - `src/routes/__root.tsx`: root document and global app shell
 - `src/components/snapshot-workbench.tsx`: page header, muted rounded workbench section, form, initial empty table, loading states, and results card
+- `src/components/snapshot-workbench.helpers.ts`: form input assembly and CSV download filename/content helper
 - `src/components/use-snapshot-runner.ts`: client-side snapshot orchestration hook for validation, batching, cancellation, pause/resume, result assembly, CSV download, and request errors
 - `src/components/holders-table.tsx`: static ranked holders table module with local pagination and muted holder summary item
 - `src/components/icon-system.test.ts`: regression guard that keeps product icons on Lucide
@@ -163,9 +164,15 @@ aligned with `wrangler.jsonc`.
   the table order. Preserve full address and balance text in populated table
   cells; narrow screens should use horizontal table scrolling instead of
   ellipses once rows exist.
-- Preserve the canonical CSV contract: `rank,address,balance`. Do not add
-  airdrop amount columns here; airdrop amounts are chosen exclusively in
+- Preserve the canonical CSV content contract: `rank,address,balance`. Do not
+  add airdrop amount columns here; airdrop amounts are chosen exclusively in
   `sui-airdrop`.
+- Preserve the CSV download filename contract in
+  `src/components/snapshot-workbench.helpers.ts`:
+  `${packageSuffix || "holders"}-${moduleName}-${tokenName}-snapshot.csv`.
+  `packageSuffix` is the last 12 hex characters of the normalized package
+  address after stripping `0x`; it keeps downloads distinguishable when different
+  packages use the same module and type names.
 - Keep transport values server-to-client JSON-safe. Do not send `BigInt`
   objects across the boundary.
 - Keep fetched and batched holder balances as raw base-unit strings until the
