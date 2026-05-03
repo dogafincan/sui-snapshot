@@ -70,7 +70,7 @@ describe("SnapshotWorkbench", () => {
       "Generate a ranked holder list for a Sui coin or NFT collection and export it as CSV.",
     );
     expect(appSubtitle?.className).toBe(
-      "max-w-[40rem] text-balance text-lg font-medium text-muted-foreground md:max-w-full",
+      "max-w-[40rem] text-balance text-lg font-medium md:max-w-full",
     );
     expect(appSubtitleContinuation?.textContent).toBe("or NFT collection and export it as CSV.");
     expect(appSubtitleContinuation?.className).toBe("md:block");
