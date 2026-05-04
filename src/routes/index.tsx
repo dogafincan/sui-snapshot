@@ -6,7 +6,8 @@ import { runSnapshotBatch } from "@/lib/sui-snapshot.functions";
 const PAGE_TITLE = "Sui Snapshot";
 const PAGE_DESCRIPTION =
   "Generate a ranked holder list for a Sui coin or NFT collection and export it as CSV.";
-const SOCIAL_IMAGE = "/og-image.png";
+const SITE_URL = "https://sui-snapshot.dogafincan.workers.dev";
+const SOCIAL_IMAGE = `${SITE_URL}/og-image.png?v=20260504`;
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,6 +24,10 @@ export const Route = createFileRoute("/")({
         content: "website",
       },
       {
+        property: "og:url",
+        content: SITE_URL,
+      },
+      {
         property: "og:title",
         content: PAGE_TITLE,
       },
@@ -32,6 +37,10 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:image",
+        content: SOCIAL_IMAGE,
+      },
+      {
+        property: "og:image:secure_url",
         content: SOCIAL_IMAGE,
       },
       {
@@ -51,6 +60,14 @@ export const Route = createFileRoute("/")({
         content: "summary_large_image",
       },
       {
+        name: "twitter:site",
+        content: "@dogafincan",
+      },
+      {
+        name: "twitter:creator",
+        content: "@dogafincan",
+      },
+      {
         name: "twitter:title",
         content: PAGE_TITLE,
       },
@@ -65,6 +82,12 @@ export const Route = createFileRoute("/")({
       {
         name: "twitter:image:alt",
         content: "Sui Snapshot app header with the camera logo and product description.",
+      },
+    ],
+    links: [
+      {
+        rel: "canonical",
+        href: SITE_URL,
       },
     ],
   }),
