@@ -55,6 +55,23 @@ after removing the leading `0x`. For example, `0x2::sui::SUI` downloads as
 `000000000002-sui-SUI-snapshot.csv`. The package suffix keeps downloads
 distinguishable when different packages use the same module and type names.
 
+## Social Preview
+
+The `/` route declares Open Graph and X/Twitter Card metadata in
+`src/routes/index.tsx`. The shared social image is `public/og-image.png`, a
+1200x630 PNG.
+
+Keep social preview image URLs absolute HTTPS URLs. X may not render card images
+from root-relative values such as `/og-image.png`, even when the asset itself is
+publicly reachable. If the deployed domain changes, update `SITE_URL`,
+`SOCIAL_IMAGE`, and the expectations in `src/routes/-index.test.ts`.
+
+If `public/og-image.png` changes, also update the cache-busting query parameter
+in `SOCIAL_IMAGE`. X caches card metadata and card images; after deploying
+metadata changes, refresh with the X Card Validator when available, or share a
+fresh URL such as `/?card=YYYYMMDD` or a new short URL so X treats the card as a
+new fetch.
+
 ## Design And UX Direction
 
 This app is also a reference for the kind of small, focused utilities this

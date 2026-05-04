@@ -72,6 +72,7 @@ workspace.
 
 - `src/routes/index.tsx`: app entry route
 - `src/routes/__root.tsx`: root document and global app shell
+- `src/routes/-index.test.ts`: regression guard for Open Graph and X/Twitter card metadata
 - `src/components/snapshot-workbench.tsx`: page header, muted rounded workbench section, form, initial empty table, loading states, and results card
 - `src/components/snapshot-workbench.helpers.ts`: form input assembly and CSV download filename/content helper
 - `src/components/use-snapshot-runner.ts`: client-side snapshot orchestration hook for validation, batching, cancellation, pause/resume, result assembly, CSV download, and request errors
@@ -82,6 +83,7 @@ workspace.
 - `src/lib/sui-snapshot.server.ts`: typed Sui GraphQL server-side snapshot page-batch execution
 - `src/lib/sui-snapshot.functions.ts`: TanStack Start server function wrapper
 - `src/lib/sui-snapshot.ts`: shared validation, formatting, and CSV helpers
+- `public/og-image.png`: 1200x630 social preview image for Open Graph and X/Twitter cards
 - `wrangler.jsonc`: Cloudflare Worker config
 
 ## Generated Files
@@ -209,6 +211,11 @@ aligned with `wrangler.jsonc`.
 - Keep the logo and favicon behavior theme-neutral unless explicitly requested.
   The header logo uses the shared public icon asset, and favicons should not use
   light/dark media-query variants.
+- Preserve the social preview contract in `src/routes/index.tsx`. Open Graph and
+  X/Twitter image tags must use absolute HTTPS URLs, not root-relative paths,
+  because X may cache or reject relative card images. If the deployed domain or
+  `public/og-image.png` changes, update `SITE_URL`, the `SOCIAL_IMAGE`
+  cache-busting query parameter, and `src/routes/-index.test.ts` together.
 - Keep loading, cancelling, paused, and error states calm and precise. When
   cancellation is pending, only the cancel button should show a cancelling
   loader; the generate button should remain disabled with its normal label and
@@ -248,6 +255,12 @@ not available.
 If you change Worker bindings or env usage, also run:
 
 - `npx vp run cf-typegen`
+
+For social preview metadata changes, inspect the production-style SSR output
+with `npx vp preview --host 127.0.0.1` and a `Twitterbot/1.0` user agent. Verify
+that `og:image`, `og:image:secure_url`, `twitter:image`, `og:url`, and the
+canonical link are absolute deployed URLs and that the image URL returns a
+1200x630 PNG.
 
 ## Notes
 
