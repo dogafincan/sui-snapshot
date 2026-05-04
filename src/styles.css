@@ -80,6 +80,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --snapshot-app-chrome-color: #b9d0f8;
   --snapshot-hero-gradient-height: 1000px;
   --snapshot-hero-mesh-pale-blue: #bbc8fe;
   --snapshot-hero-mesh-cyan: #79ccf6;
@@ -185,6 +186,12 @@
     height: var(--snapshot-hero-gradient-height);
     pointer-events: none;
     background:
+      linear-gradient(
+        to bottom,
+        var(--snapshot-app-chrome-color) 0,
+        var(--snapshot-app-chrome-color) 2.75rem,
+        transparent 7rem
+      ),
       linear-gradient(
         to bottom,
         transparent 0%,

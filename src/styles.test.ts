@@ -26,10 +26,14 @@ describe("global styles", () => {
     const meshLayer = styles.slice(meshLayerStart, meshLayerEnd);
 
     expect(styles).toContain("--snapshot-hero-gradient-height: 1000px;");
+    expect(styles).toContain("--snapshot-app-chrome-color: #b9d0f8;");
     expect(styles).toContain("--snapshot-hero-mesh-purple: #b68ffe;");
     expect(meshLayer).toContain("position: absolute;");
     expect(meshLayer).not.toContain("position: fixed;");
     expect(meshLayer).toContain("height: var(--snapshot-hero-gradient-height);");
+    expect(meshLayer).toContain("var(--snapshot-app-chrome-color) 0");
+    expect(meshLayer).toContain("var(--snapshot-app-chrome-color) 2.75rem");
+    expect(meshLayer).toContain("transparent 7rem");
     expect(meshLayer).toContain("ellipse 38% 26% at 50% 29%");
     expect(meshLayer).toContain("ellipse 48% 42% at 14% 44%");
     expect(meshLayer).toContain("ellipse 50% 42% at 84% 44%");
