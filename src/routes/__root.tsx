@@ -5,6 +5,8 @@ import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
 
+const APP_CHROME_COLOR = "#b9d0f8";
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -17,6 +19,10 @@ export const Route = createRootRoute({
       },
       {
         title: "Sui Snapshot",
+      },
+      {
+        name: "theme-color",
+        content: APP_CHROME_COLOR,
       },
     ],
     links: [
