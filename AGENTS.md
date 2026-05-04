@@ -73,6 +73,7 @@ workspace.
 - `src/routes/index.tsx`: app entry route
 - `src/routes/__root.tsx`: root document and global app shell
 - `src/routes/-index.test.ts`: regression guard for Open Graph and X/Twitter card metadata
+- `src/styles.css`: global theme tokens, body mesh background, and mobile chrome color blend
 - `src/components/snapshot-workbench.tsx`: page header, muted rounded workbench section, form, initial empty table, loading states, and results card
 - `src/components/snapshot-workbench.helpers.ts`: form input assembly and CSV download filename/content helper
 - `src/components/use-snapshot-runner.ts`: client-side snapshot orchestration hook for validation, batching, cancellation, pause/resume, result assembly, CSV download, and request errors
@@ -83,6 +84,7 @@ workspace.
 - `src/lib/sui-snapshot.server.ts`: typed Sui GraphQL server-side snapshot page-batch execution
 - `src/lib/sui-snapshot.functions.ts`: TanStack Start server function wrapper
 - `src/lib/sui-snapshot.ts`: shared validation, formatting, and CSV helpers
+- `public/manifest.json`: PWA manifest colors and install icons
 - `public/og-image.png`: 1200x630 social preview image for Open Graph and X/Twitter cards
 - `wrangler.jsonc`: Cloudflare Worker config
 
@@ -211,6 +213,12 @@ aligned with `wrangler.jsonc`.
 - Keep the logo and favicon behavior theme-neutral unless explicitly requested.
   The header logo uses the shared public icon asset, and favicons should not use
   light/dark media-query variants.
+- Preserve the mobile browser chrome and top safe-area blend when changing the
+  header mesh background. Keep `APP_CHROME_COLOR` in `src/routes/__root.tsx`,
+  `theme_color` and `background_color` in `public/manifest.json`, and
+  `--snapshot-app-chrome-color` in `src/styles.css` aligned. The top of the mesh
+  should begin with that solid color before fading into the richer gradient so
+  iPhone safe areas do not show a visible seam.
 - Preserve the social preview contract in `src/routes/index.tsx`. Open Graph and
   X/Twitter image tags must use absolute HTTPS URLs, not root-relative paths,
   because X may cache or reject relative card images. If the deployed domain or
