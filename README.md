@@ -55,6 +55,18 @@ after removing the leading `0x`. For example, `0x2::sui::SUI` downloads as
 `000000000002-sui-SUI-snapshot.csv`. The package suffix keeps downloads
 distinguishable when different packages use the same module and type names.
 
+## Product Constraints
+
+- Single public route: `/`.
+- No app-level auth, wallet requirement, transaction signing, server-held keys,
+  sponsored transactions, or persisted user state.
+- No Cloudflare storage, queues, KV, D1, R2, or background jobs.
+- No third-party indexer for snapshot accuracy. Use Sui GraphQL RPC and the
+  server batch pipeline.
+- No airdrop amount columns or transfer logic. This app exports holder
+  snapshots; the sibling `sui-airdrop` app chooses airdrop amounts and signs
+  transfers.
+
 ## Social Preview
 
 The `/` route declares Open Graph and X/Twitter Card metadata in
@@ -94,6 +106,9 @@ Reusable principles:
 - Use stock shadcn `base-luma` primitives and tokens before inventing custom
   styling. Prefer neutral surfaces, subtle rings, and a small number of strong
   action buttons over bespoke decoration.
+- Use shadcn `Item` with the muted style for compact nested surfaces such as
+  holder summaries, warnings, or status rows. Avoid nested card containers inside
+  the app cards.
 - Keep typography readable and confident: Inter, a strong page title, concise
   medium-weight subtitle, semibold field and section titles, and base-size card
   descriptions. Avoid tiny or thin text for primary workflows.
@@ -132,6 +147,10 @@ Reusable principles:
 
 - `src/routes/index.tsx`: route entrypoint for `/`
 - `src/routes/__root.tsx`: root document and global app shell
+- `src/routes/-index.test.ts`: regression coverage for Open Graph and X/Twitter
+  card metadata
+- `src/routes/-__root.test.ts`: regression coverage for app chrome, manifest,
+  and icon metadata
 - `src/components/snapshot-workbench.tsx`: page header, muted rounded workbench section, form, initial empty table, loading states, and results card
 - `src/components/snapshot-workbench.helpers.ts`: form input assembly and CSV download filename/content helper
 - `src/components/use-snapshot-runner.ts`: client-side snapshot orchestration hook for validation, batching, cancellation, pause/resume, result assembly, CSV download, and request errors
@@ -142,6 +161,13 @@ Reusable principles:
 - `src/lib/sui-snapshot.server.ts`: typed Sui GraphQL holder page-batch execution
 - `src/lib/sui-snapshot.functions.ts`: TanStack Start server function wrapper
 - `src/lib/sui-snapshot.ts`: shared validation, formatting, and CSV helpers
+- `src/styles.css`: Tailwind v4 entrypoint, Inter import, base-luma theme
+  tokens, and mesh-gradient page chrome
+- `src/styles.test.ts`: regression coverage for the mesh-gradient CSS
+- `public/manifest.json`: installed web app manifest with matching chrome colors
+- `public/og-image.png`: 1200x630 social preview image
+- `vite.config.ts`: Vite+ config for format, lint, test, router paths, and the
+  Cloudflare plugin
 - `wrangler.jsonc`: Cloudflare Worker configuration
 
 ## Snapshot Pipeline
@@ -256,11 +282,16 @@ older local workflows.
 
 ## Deployment
 
-Deploy to Cloudflare Workers with:
+1. Authenticate once with `npx wrangler login`.
+2. Keep Worker env vars, secrets, and binding changes documented in `README.md`
+   and `AGENTS.md`, then align them with `wrangler.jsonc`.
+3. Regenerate Worker types after binding or environment-shape changes with
+   `npx vp run cf-typegen`.
+4. Deploy to Cloudflare Workers with:
 
-```bash
-npx vp run deploy
-```
+   ```bash
+   npx vp run deploy
+   ```
 
 The Worker entrypoint is `@tanstack/react-start/server-entry`, configured in
 `wrangler.jsonc`.
@@ -275,18 +306,31 @@ locally.
 
 ## Verification
 
-Useful checks before deploying:
+For behavior changes, run:
 
 ```bash
 npx vp check
 npx vp test
 npx vp build
+```
+
+For docs-only changes, at minimum run:
+
+```bash
+npx vp check
+git diff --check
+```
+
+If Worker bindings or environment usage change, also run:
+
+```bash
 npx vp run cf-typegen
 ```
 
 ## Notes
 
-- The app is stateless and public by design. No D1, KV, R2, or background jobs.
+- The app is stateless and public by design; keep workflow changes inside the
+  product constraints above.
 - The exported CSV contract is intentionally fixed to `rank,address,balance` so
   it can be uploaded directly into the sibling `sui-airdrop` app.
 - CSV download filenames include the package suffix, module name, and token type

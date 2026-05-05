@@ -1,5 +1,24 @@
 # AGENTS.md
 
+<!-- intent-skills:start -->
+
+# Skill mappings - when working in these areas, load the linked skill file into context.
+
+skills:
+
+- task: "working on TanStack Start structure, the document shell, or server/client boundaries"
+  load: "node_modules/@tanstack/start-client-core/skills/start-core/SKILL.md"
+- task: "working on React-specific TanStack Start routes, components, or useServerFn"
+  load: "node_modules/@tanstack/react-start/skills/react-start/SKILL.md"
+- task: "working on Cloudflare hosting, SSR modes, prerendering, or deploys"
+  load: "node_modules/@tanstack/start-client-core/skills/start-core/deployment/SKILL.md"
+- task: "working on routing, navigation, route loaders, or file-based route conventions"
+  load: "node_modules/@tanstack/router-core/skills/router-core/SKILL.md"
+- task: "working on Vite plugin order, route generation, or Router code splitting"
+  load: "node_modules/@tanstack/router-plugin/skills/router-plugin/SKILL.md"
+
+<!-- intent-skills:end -->
+
 ## Project Overview
 
 This repository is a TanStack Start web app deployed to Cloudflare Workers.
@@ -51,6 +70,9 @@ workspace.
 - Use shadcn `base-luma`, Base UI primitives, Tailwind tokens, and Inter before
   inventing bespoke styling. Prefer neutral surfaces, subtle rings, and one
   strong primary action.
+- Use shadcn `Item` with the muted style for compact nested surfaces such as
+  holder summaries, warnings, or status rows. Avoid nested card containers inside
+  the app cards.
 - Use typography deliberately. Page headers may be large and bold; card and item
   titles should be readable and semibold; descriptions should generally stay
   base-sized and not too thin.
@@ -72,8 +94,11 @@ workspace.
 
 - `src/routes/index.tsx`: app entry route
 - `src/routes/__root.tsx`: root document and global app shell
+- `src/routes/-__root.test.ts`: regression guard for app chrome, manifest, and
+  icon metadata
 - `src/routes/-index.test.ts`: regression guard for Open Graph and X/Twitter card metadata
 - `src/styles.css`: global theme tokens, body mesh background, and mobile chrome color blend
+- `src/styles.test.ts`: regression guard for the mesh-gradient CSS
 - `src/components/snapshot-workbench.tsx`: page header, muted rounded workbench section, form, initial empty table, loading states, and results card
 - `src/components/snapshot-workbench.helpers.ts`: form input assembly and CSV download filename/content helper
 - `src/components/use-snapshot-runner.ts`: client-side snapshot orchestration hook for validation, batching, cancellation, pause/resume, result assembly, CSV download, and request errors
@@ -86,6 +111,8 @@ workspace.
 - `src/lib/sui-snapshot.ts`: shared validation, formatting, and CSV helpers
 - `public/manifest.json`: PWA manifest colors and install icons
 - `public/og-image.png`: 1200x630 social preview image for Open Graph and X/Twitter cards
+- `vite.config.ts`: Vite+ config for format, lint, test, router paths, and the
+  Cloudflare plugin
 - `wrangler.jsonc`: Cloudflare Worker config
 
 ## Generated Files
@@ -146,12 +173,26 @@ Optional batch budget overrides:
 - `SUI_GRAPHQL_RETRY_HEADROOM`
 
 If you add more Worker env vars, keep them documented in `README.md` and
-aligned with `wrangler.jsonc`.
+`AGENTS.md`, then align them with `wrangler.jsonc`.
+
+## Deployment Guidance
+
+- Authenticate once with `npx wrangler login`.
+- Deploy with `npx vp run deploy`.
+- For Cloudflare Workers Builds, keep the dashboard command pair as
+  `npm run build` for the build command and `npx wrangler deploy` for the
+  deploy command unless the Worker setup changes.
+- Regenerate Worker types with `npx vp run cf-typegen` after binding or
+  environment-shape changes.
 
 ## Editing Guidance
 
 - Keep the app stateless. Do not introduce D1, KV, R2, queues, or persistence
   unless explicitly requested.
+- Keep the app public and unauthenticated. Do not add wallet connection,
+  transaction signing, server-held keys, sponsored transactions, or airdrop
+  transfer logic here unless explicitly requested; `sui-airdrop` owns airdrop
+  execution.
 - Preserve the current public interface:
   - route `/`
   - input: `coinAddress`
@@ -200,7 +241,8 @@ aligned with `wrangler.jsonc`.
   compact inner summaries should use the shadcn `Item` muted variant. Prefer
   readable base-size card copy, semibold section titles, and a strong page
   header. Prefer minimal layout classes and avoid non-shadcn decorative chrome or
-  bespoke visual styling.
+  bespoke visual styling. Do not place card containers inside app cards; use
+  `Item` for compact nested surfaces instead.
 - Keep the workbench radius, padding, and inner card radius visually related at
   each breakpoint. If spacing tightens on smaller screens, the outer radius may
   need to tighten too.
@@ -242,6 +284,11 @@ When changing behavior, run:
 - `npx vp check`
 - `npx vp test`
 - `npx vp build`
+
+For docs-only changes, at minimum run:
+
+- `npx vp check`
+- `git diff --check`
 
 For UI/UX changes, also check the relevant responsive states manually or with
 browser automation when practical:
